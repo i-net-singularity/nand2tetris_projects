@@ -17,4 +17,73 @@ CHIP Mux4Way16 {
 
     PARTS:
     // Put your code here:
+    // Func : If sel=00 then out=a else if sel=01 then out=b else if sel=10 then out=c else if sel=11 then out=d:
+    Not(in=sel[0], out=notsel0);
+    Not(in=sel[1], out=notsel1);
+
+    // Case a : sel=00
+    And16(a=a
+         ,b[00]=notsel1,b[01]=notsel1,b[02]=notsel1,b[03]=notsel1
+         ,b[04]=notsel1,b[05]=notsel1,b[06]=notsel1,b[07]=notsel1
+         ,b[08]=notsel1,b[09]=notsel1,b[10]=notsel1,b[11]=notsel1
+         ,b[12]=notsel1,b[13]=notsel1,b[14]=notsel1,b[15]=notsel1
+         ,out=wkAAnd1);
+    
+    And16(a=wkAAnd1
+         ,b[00]=notsel0,b[01]=notsel0,b[02]=notsel0,b[03]=notsel0
+         ,b[04]=notsel0,b[05]=notsel0,b[06]=notsel0,b[07]=notsel0
+         ,b[08]=notsel0,b[09]=notsel0,b[10]=notsel0,b[11]=notsel0
+         ,b[12]=notsel0,b[13]=notsel0,b[14]=notsel0,b[15]=notsel0
+         ,out=wkAAnd2);
+
+    // Case b : sel=01
+    And16(a=b
+         ,b[00]=notsel1,b[01]=notsel1,b[02]=notsel1,b[03]=notsel1
+         ,b[04]=notsel1,b[05]=notsel1,b[06]=notsel1,b[07]=notsel1
+         ,b[08]=notsel1,b[09]=notsel1,b[10]=notsel1,b[11]=notsel1
+         ,b[12]=notsel1,b[13]=notsel1,b[14]=notsel1,b[15]=notsel1
+         ,out=wkBAnd1);
+    
+    And16(a=wkBAnd1
+         ,b[00]=sel[0],b[01]=sel[0],b[02]=sel[0],b[03]=sel[0]
+         ,b[04]=sel[0],b[05]=sel[0],b[06]=sel[0],b[07]=sel[0]
+         ,b[08]=sel[0],b[09]=sel[0],b[10]=sel[0],b[11]=sel[0]
+         ,b[12]=sel[0],b[13]=sel[0],b[14]=sel[0],b[15]=sel[0]
+         ,out=wkBAnd2);
+
+    // case c : sel=10
+    And16(a=c
+         ,b[00]=sel[1],b[01]=sel[1],b[02]=sel[1],b[03]=sel[1]
+         ,b[04]=sel[1],b[05]=sel[1],b[06]=sel[1],b[07]=sel[1]
+         ,b[08]=sel[1],b[09]=sel[1],b[10]=sel[1],b[11]=sel[1]
+         ,b[12]=sel[1],b[13]=sel[1],b[14]=sel[1],b[15]=sel[1]
+         ,out=wkCAnd1);
+    
+    And16(a=wkCAnd1
+         ,b[00]=notsel0,b[01]=notsel0,b[02]=notsel0,b[03]=notsel0
+         ,b[04]=notsel0,b[05]=notsel0,b[06]=notsel0,b[07]=notsel0
+         ,b[08]=notsel0,b[09]=notsel0,b[10]=notsel0,b[11]=notsel0
+         ,b[12]=notsel0,b[13]=notsel0,b[14]=notsel0,b[15]=notsel0
+         ,out=wkCAnd2);
+
+    // case d : sel=11
+    And16(a=d
+         ,b[00]=sel[1],b[01]=sel[1],b[02]=sel[1],b[03]=sel[1]
+         ,b[04]=sel[1],b[05]=sel[1],b[06]=sel[1],b[07]=sel[1]
+         ,b[08]=sel[1],b[09]=sel[1],b[10]=sel[1],b[11]=sel[1]
+         ,b[12]=sel[1],b[13]=sel[1],b[14]=sel[1],b[15]=sel[1]
+         ,out=wkDAnd1);
+    
+    And16(a=wkDAnd1
+         ,b[00]=sel[0],b[01]=sel[0],b[02]=sel[0],b[03]=sel[0]
+         ,b[04]=sel[0],b[05]=sel[0],b[06]=sel[0],b[07]=sel[0]
+         ,b[08]=sel[0],b[09]=sel[0],b[10]=sel[0],b[11]=sel[0]
+         ,b[12]=sel[0],b[13]=sel[0],b[14]=sel[0],b[15]=sel[0]
+         ,out=wkDAnd2);
+
+    // selector
+    Or16(a=wkAAnd2 ,b=wkBAnd2, out=wkOr1);
+    Or16(a=wkOr1   ,b=wkCAnd2, out=wkOr2);
+    Or16(a=wkOr2   ,b=wkDAnd2, out=out);
+
 }
