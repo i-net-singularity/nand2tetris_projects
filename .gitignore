@@ -24,3 +24,8 @@ hs_err_pid*
 
 # etc
 *.pdf
+
+# N2T #
+*.tst
+*.cmp
+*.out
