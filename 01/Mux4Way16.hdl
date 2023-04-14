@@ -16,12 +16,10 @@ CHIP Mux4Way16 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
-    // Func : If sel=00 then out=a else if sel=01 then out=b else if sel=10 then out=c else if sel=11 then out=d:
-    // Mux4Wayのブール式を整理すると、(a^s0+bs0)^s1 + (c^s0ds0)s1 になる。
-    // 整理した式をHDLで記載する
-    Mux16(a=a, b=b, sel=sel[0], out=Mux16wk1);
-    Mux16(a=c, b=d, sel=sel[0], out=Mux16wk2);
-    Mux16(a=Mux16wk1, b=Mux16wk2, sel=sel[1], out=out);
-
+        // Func : If sel=00 then out=a else if sel=01 then out=b else if sel=10 then out=c else if sel=11 then out=d:
+        // Mux4Wayのブール式を整理すると、(a^s0+bs0)^s1 + (c^s0ds0)s1 になる。
+        // 整理した式をHDLで記載する
+        Mux16(a=a, b=b, sel=sel[0], out=Mux16wk1);
+        Mux16(a=c, b=d, sel=sel[0], out=Mux16wk2);
+        Mux16(a=Mux16wk1, b=Mux16wk2, sel=sel[1], out=out);
 }

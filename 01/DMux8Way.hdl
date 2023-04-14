@@ -16,17 +16,16 @@ CHIP DMux8Way {
     OUT a, b, c, d, e, f, g, h;
 
     PARTS:
-    // The part of sel[2]
-    DMux(in=in, sel=sel[2], a=DMuxWk21, b=DMuxWk22);
+        // The part of sel[2]
+        DMux(in=in, sel=sel[2], a=DMuxWk21, b=DMuxWk22);
 
-    // The part of sel[1]
-    DMux(in=DMuxWk21, sel=sel[1], a=DMuxWk11, b=DMuxWk12);
-    DMux(in=DMuxWk22, sel=sel[1], a=DMuxWk13, b=DMuxWk14);
+        // The part of sel[1]
+        DMux(in=DMuxWk21, sel=sel[1], a=DMuxWk11, b=DMuxWk12);
+        DMux(in=DMuxWk22, sel=sel[1], a=DMuxWk13, b=DMuxWk14);
 
-    // The part of sel[0]
-    DMux(in=DMuxWk11, sel=sel[0], a=a, b=b);
-    DMux(in=DMuxWk12, sel=sel[0], a=c, b=d);
-    DMux(in=DMuxWk13, sel=sel[0], a=e, b=f);
-    DMux(in=DMuxWk14, sel=sel[0], a=g, b=h);
-
+        // The part of sel[0]
+        DMux(in=DMuxWk11, sel=sel[0], a=a, b=b);
+        DMux(in=DMuxWk12, sel=sel[0], a=c, b=d);
+        DMux(in=DMuxWk13, sel=sel[0], a=e, b=f);
+        DMux(in=DMuxWk14, sel=sel[0], a=g, b=h);
 }

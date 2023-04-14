@@ -16,11 +16,10 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    // The part of sel[1]
-    DMux(in=in, sel=sel[1], a=DMuxWk11, b=DMuxWk12);
+        // The part of sel[1]
+        DMux(in=in, sel=sel[1], a=DMuxWk11, b=DMuxWk12);
 
-    // The part of sel[0]
-    DMux(in=DMuxWk11, sel=sel[0], a=a, b=b);
-    DMux(in=DMuxWk12, sel=sel[0], a=c, b=d);
-
+        // The part of sel[0]
+        DMux(in=DMuxWk11, sel=sel[0], a=a, b=b);
+        DMux(in=DMuxWk12, sel=sel[0], a=c, b=d);
 }
