@@ -13,5 +13,20 @@ CHIP Add16 {
     OUT out[16];
 
     PARTS:
-   // Put you code here:
+        FullAdder(a=a[00],b=b[00],c=false ,sum=out[00],carry=wk01);
+        FullAdder(a=a[01],b=b[01],c=wk01  ,sum=out[01],carry=wk02);
+        FullAdder(a=a[02],b=b[02],c=wk02  ,sum=out[02],carry=wk03);
+        FullAdder(a=a[03],b=b[03],c=wk03  ,sum=out[03],carry=wk04);
+        FullAdder(a=a[04],b=b[04],c=wk04  ,sum=out[04],carry=wk05);
+        FullAdder(a=a[05],b=b[05],c=wk05  ,sum=out[05],carry=wk06);
+        FullAdder(a=a[06],b=b[06],c=wk06  ,sum=out[06],carry=wk07);
+        FullAdder(a=a[07],b=b[07],c=wk07  ,sum=out[07],carry=wk08);
+        FullAdder(a=a[08],b=b[08],c=wk08  ,sum=out[08],carry=wk09);
+        FullAdder(a=a[09],b=b[09],c=wk09  ,sum=out[09],carry=wk10);
+        FullAdder(a=a[10],b=b[10],c=wk10  ,sum=out[10],carry=wk11);
+        FullAdder(a=a[11],b=b[11],c=wk11  ,sum=out[11],carry=wk12);
+        FullAdder(a=a[12],b=b[12],c=wk12  ,sum=out[12],carry=wk13);
+        FullAdder(a=a[13],b=b[13],c=wk13  ,sum=out[13],carry=wk14);
+        FullAdder(a=a[14],b=b[14],c=wk14  ,sum=out[14],carry=wk15);
+        FullAdder(a=a[15],b=b[15],c=wk15  ,sum=out[15],carry=carry);
 }
