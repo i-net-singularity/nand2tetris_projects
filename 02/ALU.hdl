@@ -42,34 +42,40 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-        //zx operation unit
+        // zx operation unit
+        // if (zx == 1) set x = 0        // 16-bit constant
         Mux16(a=x, b=false, sel=zx, out=zxOut);
 
-        //nx operation unit
+        // nx operation unit
+        // if (nx == 1) set x = !x       // bitwise not
         Not16(in=zxOut, out=notzxOut);
         Mux16(a=zxOut, b=notzxOut, sel=nx, out=nxOut);
 
-        //zy operation unit
+        // zy operation unit
+        // if (zy == 1) set y = 0        // 16-bit constant
         Mux16(a=y, b=false, sel=zy, out=zyOut);
 
-        //ny operation unit
-        Not16(in=zyOut, out=notzyOut);
+        // ny operation unit
+        // if (ny == 1) set y = !y       // bitwise not);
         Mux16(a=zyOut, b=notzyOut, sel=ny, out=nyOut);
 
         // f operation unit
+        // if (f == 1)  set out = x + y  // integer 2's complement addition
+        // if (f == 0)  set out = x & y  // bitwise and
+        Not16(in=zyOut, out=notzyOut);
         And16(a=nxOut,b=nyOut,out=and16Out);
         Add16(a=nxOut,b=nyOut,out=add16Out);
         Mux16(a=and16Out, b=add16Out, sel=f, out=fOut);
         
-        // (no operation unit)
-        Not16(in=fOut,out=notfOut);
-        // ---------------------------------------------------------------------
-        // OUT
-        // ---------------------------------------------------------------------
+        // no operation unit
         // out & ng status
+        // if (no == 1) set out = !out   // bitwise not
+        // if (out < 0) set ng = 1
+        Not16(in=fOut,out=notfOut);
         Mux16(a=fOut, b=notfOut, sel=no, out[8..15]=outTop8bit, out[0..7]=outBottom8bit, out[15]=ng, out=out);
 
         // zr status
+        // if (out == 0) set zr = 1
         Or8Way(in=outTop8bit   , out=zrWk1);
         Or8Way(in=outBottom8bit, out=zrWk2);
         Or(a=zrWk1, b=zrWk2, out=zrWk3);
