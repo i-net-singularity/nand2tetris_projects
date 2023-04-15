@@ -60,8 +60,18 @@ CHIP ALU {
         And16(a=nxOut,b=nyOut,out=and16Out);
         Add16(a=nxOut,b=nyOut,out=add16Out);
         Mux16(a=and16Out, b=add16Out, sel=f, out=fOut);
-
-        //no operation unit
+        
+        // (no operation unit)
         Not16(in=fOut,out=notfOut);
-        Mux16(a=fOut, b=notfOut, sel=no, out=out);
+        // ---------------------------------------------------------------------
+        // OUT
+        // ---------------------------------------------------------------------
+        // out & ng status
+        Mux16(a=fOut, b=notfOut, sel=no, out[8..15]=outTop8bit, out[0..7]=outBottom8bit, out[15]=ng, out=out);
+
+        // zr status
+        Or8Way(in=outTop8bit   , out=zrWk1);
+        Or8Way(in=outBottom8bit, out=zrWk2);
+        Or(a=zrWk1, b=zrWk2, out=zrWk3);
+        Not(in=zrWk3,out=zr);
 }
