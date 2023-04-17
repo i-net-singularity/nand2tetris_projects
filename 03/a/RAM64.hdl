@@ -4,16 +4,34 @@
 // File name: projects/03/a/RAM64.hdl
 
 /**
- * Memory of 64 registers, each 16 bit-wide. Out holds the value
+ * Memory of 64 ramisters, each 16 bit-wide. Out holds the value
  * stored at the memory location specified by address. If load==1, then 
  * the in value is loaded into the memory location specified by address 
  * (the loaded value will be emitted to out from the next time step onward).
  */
 
+//    IN in[16], load, address[3];
+//    OUT out[16];
 CHIP RAM64 {
     IN in[16], load, address[6];
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+        // write
+        DMux8Way(in=load,sel=address[0..2]
+                ,a=ram1,b=ram2,c=ram3,d=ram4, e=ram5,f=ram6,g=ram7,h=ram8);
+        
+        // ram
+        RAM8(in=in,load=ram1,address=address[3..5],out=ramOut1);
+        RAM8(in=in,load=ram2,address=address[3..5],out=ramOut2);
+        RAM8(in=in,load=ram3,address=address[3..5],out=ramOut3);
+        RAM8(in=in,load=ram4,address=address[3..5],out=ramOut4);
+        RAM8(in=in,load=ram5,address=address[3..5],out=ramOut5);
+        RAM8(in=in,load=ram6,address=address[3..5],out=ramOut6);
+        RAM8(in=in,load=ram7,address=address[3..5],out=ramOut7);
+        RAM8(in=in,load=ram8,address=address[3..5],out=ramOut8);
+
+        // read
+        Mux8Way16(a=ramOut1,b=ramOut2,c=ramOut3,d=ramOut4,e=ramOut5,f=ramOut6,g=ramOut7,h=ramOut8
+                ,sel=address[0..2],out=out);
 }
