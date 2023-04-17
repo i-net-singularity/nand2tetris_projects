@@ -14,6 +14,11 @@ CHIP Bit {
     OUT out;
 
     PARTS:
-    Mux(a=dffWk1,b=in,sel=load, out=muxWk);
-    DFF(in=muxWk, out=out, out=dffWk1);
+        // load : 1 の場合 in の値をロードする
+        // load : 0 の場合 値を保持する
+        Mux(a=dffWk1,b=in,sel=load, out=muxWk);
+
+        // in  : Muxで選択された値を入力とする
+        // out : OUTとは別に、Muxにフィードバックするルートを設ける
+        DFF(in=muxWk, out=out, out=dffWk1);
 }
