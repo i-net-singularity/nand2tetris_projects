@@ -33,5 +33,5 @@ CHIP RAM64 {
 
         // read
         Mux8Way16(a=ramOut1,b=ramOut2,c=ramOut3,d=ramOut4,e=ramOut5,f=ramOut6,g=ramOut7,h=ramOut8
-                ,sel=address[0..2],out=out);
+                 ,sel=address[0..2],out=out);
 }
