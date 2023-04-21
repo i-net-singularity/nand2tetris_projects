@@ -11,4 +11,66 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// Put your code here.
+// 初期化
+
+
+// ループ
+(LOOP)
+    @i                    // カウンタ変数
+    M=0                   // i = 0 
+
+    @KBD    // キーボードのアドレス
+    D=M     // キーボード入力を「D」に格納
+    @ON_LOOP
+    D;JNE   // D != 0 ならば、(ON) にジャンプ
+    @OFF_LOOP
+    0;JMP   // 上記以外ならば、(OFF) にジャンプ
+
+(ON_LOOP)
+    @SCREEN
+    D=A
+    
+    @i
+    A=D+M
+    D=0
+    M=!D
+
+    @i
+    D=M
+
+    @8190
+    D=D-A
+
+    @LOOP
+    D;JGT
+
+    @i
+    MD=M+1
+
+    @ON_LOOP
+    0;JMP
+
+(OFF_LOOP)
+    @SCREEN
+    D=A
+    
+    @i
+    A=D+M
+    D=0
+    M=D
+
+    @i
+    D=M
+
+    @8190
+    D=D-A
+
+    @LOOP
+    D;JGT
+
+    @i
+    MD=M+1
+
+    @OFF_LOOP
+    0;JMP
+
