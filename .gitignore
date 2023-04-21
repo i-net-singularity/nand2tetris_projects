@@ -29,3 +29,4 @@ hs_err_pid*
 *.tst
 *.cmp
 *.out
+*.hack
