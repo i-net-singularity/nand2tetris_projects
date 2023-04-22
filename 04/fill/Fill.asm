@@ -19,58 +19,60 @@
     @i                    // カウンタ変数
     M=0                   // i = 0 
 
-    @KBD    // キーボードのアドレス
-    D=M     // キーボード入力を「D」に格納
-    @ON_LOOP
-    D;JNE   // D != 0 ならば、(ON) にジャンプ
-    @OFF_LOOP
-    0;JMP   // 上記以外ならば、(OFF) にジャンプ
+    @KBD                  // キーボードのアドレス
+    D=M                   // キーボード入力を「D」に格納
+    @BLACK_FILL
+    D;JNE                 // D != 0 ならば、(LOOP_BLACK_FILL) にジャンプ
+    @WHITE_FILL
+    0;JMP                 // 上記以外ならば、(LOOP_WHITE_FILL) にジャンプ
 
-(ON_LOOP)
-    @SCREEN
-    D=A
-    
-    @i
-    A=D+M
-    D=0
-    M=!D
+(BLACK_FILL)
 
     @i
-    D=M
+    D=M                   // D = i を取得
 
-    @8190
-    D=D-A
+    @8192                 // スクリーンマップ(512 x 256) サイズ
+    D=D-A                 // D = i - 8192
 
     @LOOP
-    D;JGT
+    D;JGE                 // D >= 0 ならば、画面塗りつぶし完了なので (LOOP) にジャンプ
 
-    @i
-    MD=M+1
-
-    @ON_LOOP
-    0;JMP
-
-(OFF_LOOP)
     @SCREEN
-    D=A
-    
-    @i
-    A=D+M
-    D=0
-    M=D
+    D=A                   // スクリーンの開始アドレスを取得
 
     @i
-    D=M
+    A=D+M                 // 操作対象のスクリーンアドレス = @SCREEN + i
+    D=0                   // D = 0x0000 で初期化
+    M=!D                  // 操作対象のスクリーンアドレスを黒で塗りつぶす（0x0000 -> 0xffff に反転）
 
-    @8190
-    D=D-A
+    @i
+    M=M+1                 // i++
+
+    @BLACK_FILL
+    0;JMP                 // (BLACK_FILL) に無条件ジャンプ
+
+(WHITE_FILL)
+
+    @i
+    D=M                   // D = i を取得
+
+    @8192                 // スクリーンマップ(512 x 256) サイズ
+    D=D-A                 // D = i - 8192
 
     @LOOP
-    D;JGT
+    D;JGE                 // D >= 0 ならば、画面塗りつぶし完了なので (LOOP) にジャンプ
+
+    @SCREEN
+    D=A                   // スクリーンの開始アドレスを取得
 
     @i
-    MD=M+1
+    A=D+M                 // 操作対象のスクリーンアドレス = @SCREEN + i
+    D=0                   // D = 0x0000 で初期化
+    M=D                   // 操作対象のスクリーンアドレスを白で塗りつぶす
 
-    @OFF_LOOP
-    0;JMP
+    @i
+    M=M+1                 // i++
+
+    @WHITE_FILL
+    0;JMP                 // (WHITE_FILL) に無条件ジャンプ
 
