@@ -11,10 +11,6 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// 初期化
-
-
-// ループ
 (LOOP)
     @i                    // カウンタ変数
     M=0                   // i = 0 
