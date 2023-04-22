@@ -21,8 +21,10 @@
 
     @KBD                  // キーボードのアドレス
     D=M                   // キーボード入力を「D」に格納
+
     @BLACK_FILL
     D;JNE                 // D != 0 ならば、(LOOP_BLACK_FILL) にジャンプ
+    
     @WHITE_FILL
     0;JMP                 // 上記以外ならば、(LOOP_WHITE_FILL) にジャンプ
 
