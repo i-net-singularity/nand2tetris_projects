@@ -39,5 +39,165 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+        // 最適解よりも分かりやすさ重視
+
+        // =====================================================================
+        // Decode
+        // =====================================================================
+        // =============================
+        // Purse
+        // =============================
+        // A-cmd : 0vvv vvvv vvvv vvvv
+        // C-cmd : 1xxa cccc ccdd djjj
+        // instructionFlg : 0(A-cmd)
+        //                  1(C-cmd)
+        And(a=instruction[15],b=true,out=instructionFlg);
+
+        // =============================
+        // Parsing the A command
+        // =============================
+        // none
+        
+        // =============================
+        // Parsing the C command
+        // =============================
+        // aFlg
+        And(a=instruction[12],b=instructionFlg,out=aFlg);
+
+        // comp-area (Ｃ命令の場合のみ有効)
+        And(a=instruction[11],b=instructionFlg,out=c1Flg);
+        And(a=instruction[10],b=instructionFlg,out=c2Flg);
+        And(a=instruction[09],b=instructionFlg,out=c3Flg);
+        And(a=instruction[08],b=instructionFlg,out=c4Flg);
+        And(a=instruction[07],b=instructionFlg,out=c5Flg);
+        And(a=instruction[06],b=instructionFlg,out=c6Flg);
+
+        // dest-area (Ｃ命令の場合のみ有効)
+        And(a=instruction[05],b=instructionFlg,out=d1Flg); // A
+        And(a=instruction[04],b=instructionFlg,out=d2Flg); // D
+        And(a=instruction[03],b=instructionFlg,out=d3Flg); // M
+
+        // jump-area (Ｃ命令の場合のみ有効)
+        And(a=instruction[02],b=instructionFlg,out=j1Flg); // out < 0
+        And(a=instruction[01],b=instructionFlg,out=j2Flg); // out = 0
+        And(a=instruction[00],b=instructionFlg,out=j3Flg); // out > 0
+
+        // =====================================================================
+        // Register & Mux
+        // =====================================================================
+        // Reg D Unit
+        Or(a=false,b=d2Flg,out=loadDFlg);
+        DRegister(in=outARU,load=loadDFlg,out=outD);
+
+        // Mux (Select A/C commands)
+        Mux16(a=instruction,b=outARU,sel=instructionFlg,out=mux1Out);
+        
+        // Reg A Unit
+        Not(in=instructionFlg,out=ACmdFlg);
+        Or(a=ACmdFlg,b=d1Flg,out=loadAFlg);
+        ARegister(in=mux1Out,load=loadAFlg,out=outA);
+
+        // Mux (Select A/M area)
+        Mux16(a=outA,b=inM,sel=aFlg,out=outAM);
+
+        // =====================================================================
+        // Jump & PC
+        // =====================================================================
+
+        DMux8Way(in=true,sel[2]=j1Flg,sel[1]=j2Flg,sel[0]=j3Flg
+                ,a=noJump
+                ,b=jump1
+                ,c=jump2
+                ,d=jump3
+                ,e=jump4
+                ,f=jump5
+                ,g=jump6
+                ,h=jump7
+        );
+        // Not ZR,NG
+        Not(in=outZR,out=notOutZR);
+        Not(in=outNG,out=notOutNG);
+
+        // CASE0 : No jump
+        And(a=noJump,b=false,out=jumpCase0);
+        
+        // CASE1 : If out  > 0 jump -> zr=0 ng=0
+        And(a=notOutZR,b=notOutNG    ,out=JumpCase1wk);
+        And(a=jump1   ,b=JumpCase1wk ,out=jumpCase1);
+
+        // CASE2 : If out = 0 jump -> zr=1 ng=0
+        And(a=outZR   ,b=notOutNG    ,out=JumpCase2wk);
+        And(a=jump2   ,b=JumpCase2wk ,out=jumpCase2);
+
+        // CASE3 :  If out => 0 -> zr=0 ng=0 or zr=1 ng=0
+        And(a=notOutZR,b=notOutNG    ,out=JumpCase3wk1);
+        And(a=outZR   ,b=notOutNG    ,out=JumpCase3wk2);
+        Or(a=JumpCase3wk1,b=JumpCase3wk2,out=JumpCase3wk3);
+        And(a=jump3   ,b=JumpCase3wk3,out=jumpCase3);
+
+        // CASE4 : If out < 0       -> zr=0 ng=1
+        And(a=notOutZR,b=outNG       ,out=JumpCase4wk);
+        And(a=jump4   ,b=JumpCase4wk ,out=jumpCase4);
+
+        // CASE5 : If out <> 0   -> zr=0 ng=0 or zr=0 ng=1
+        And(a=notOutZR,b=notOutNG    ,out=JumpCase5wk1);
+        And(a=notOutZR,b=outNG       ,out=JumpCase5wk2);
+        Or(a=JumpCase5wk1,b=JumpCase5wk2,out=JumpCase5wk3);
+        And(a=jump5   ,b=JumpCase5wk3,out=jumpCase5);
+
+        // CASE6 : If out <= 0   -> zr=0 ng=1 or zr=1 ng=0
+        And(a=notOutZR,b=outNG      ,out=JumpCase6wk1);
+        And(a=outZR   ,b=notOutNG   ,out=JumpCase6wk2);
+        Or(a=JumpCase6wk1,b=JumpCase6wk2,out=JumpCase6wk3);
+        And(a=jump6,b=JumpCase6wk3,out=jumpCase6);
+
+        // CASE7 : Jump  | --
+        And(a=jump7,b=true,out=jumpCase7);
+
+        // PCへのLOADフラグ生成
+        Or8Way(in[0]=jumpCase0
+              ,in[1]=jumpCase1
+              ,in[2]=jumpCase2
+              ,in[3]=jumpCase3
+              ,in[4]=jumpCase4
+              ,in[5]=jumpCase5
+              ,in[6]=jumpCase6
+              ,in[7]=jumpCase7
+              ,out=loadPcFlg);
+
+        PC(in=outA,load=loadPcFlg,inc=true,reset=reset,out[0..14]=pc);
+
+        // =====================================================================
+        // ALU
+        // =====================================================================
+        ALU(
+        // IN
+            x=outD                      // x[16], y[16],  // 16-bit inputs
+           ,y=outAM                     // x[16], y[16],  // 16-bit inputs
+           ,zx=c1Flg                    // zero the x input?
+           ,nx=c2Flg                    // negate the x input?
+           ,zy=c3Flg                    // zero the y input?
+           ,ny=c4Flg                    // negate the y input?
+           ,f=c5Flg                     // compute out = x + y (if 1) or x & y (if 0)
+           ,no=c6Flg                    // negate the out output?
+        // OUT
+           ,out=outARU                  // 16-bit output
+           ,zr=outZR                    // 1 if (out == 0), 0 otherwise
+           ,ng=outNG                    // 1 if (out <  0),  0 otherwise
+        );
+
+        // =============================
+        // OUTPUT
+        // =============================
+        // outM
+        And16(a=outARU,b[0..15]=true,out=outM);
+
+        // writeM
+        And(a=d3Flg,b=true,out=writeM);
+
+        // addressM
+        And16(a=outA,b[0..15]=true,out[0..14]=addressM);
+
+
+
 }
