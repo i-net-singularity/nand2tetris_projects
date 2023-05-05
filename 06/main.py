@@ -47,14 +47,8 @@ def main():
         #for line in parsed_asm_codes:
             #output_file.write(line.'cmdType' + '\n')
     with open(output_file_name, 'w') as output_file:
-        for item in parsed_asm_codes:
-            output_line=f"{item['cmdType']}"
-            #output_file.write(f"CmdType: {item['cmdType']}\n")
-            #output_file.write(f"Symbol: {item['symbol']}\n")
-            #output_file.write(f"Dest: {item['dest']}\n")
-            #output_file.write(f"Comp: {item['comp']}\n")
-            #output_file.write(f"Jump: {item['jump']}\n")
-            output_file.write(output_line)
+        for item in converted_asm_codes:
+            output_file.write(item)
             output_file.write("\n")  # 各ディクショナリの間に空行を挿入
 
 # ------------------------------------------------------------------------------
@@ -206,13 +200,10 @@ def asm_code_converter(parsed_asm_codes: List[Dict]) -> List[Dict]:
 
         elif line['cmdType'] == 'C':
             dest_code = machine_codes_dict['dest'][line['dest']]
-            comp_code = "acccccc"
+            comp_code = machine_codes_dict['comp'][line['comp']]
             jump_code = machine_codes_dict['jump'][line['jump']]
 
-            converted_asm_codes.append("111" + comp_code + dest_code + jump_code + " " + line['code'])
-        
-    print (converted_asm_codes)
-    print ("End of Def : converted_asm_codes")
+            converted_asm_codes.append("111" + comp_code + dest_code + jump_code)
 
     return converted_asm_codes
 
