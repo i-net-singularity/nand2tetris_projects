@@ -1,12 +1,11 @@
 #!python
 import sys
 import re
-import json
+from typing import List, Dict
+#import json
 from symbol_table_manager import SymbolTableManager
 
-from typing import List, Dict
-from collections import namedtuple
-from typing import Tuple
+
 
 # ------------------------------------------------------------------------------
 # Symbol Table 生成
@@ -42,7 +41,6 @@ def main():
     #for line in parsed_asm_codes:
     #    print(line)
 
-    #print("--------------------")
     #symbol_table_manager.show_dict_all()
 
     converted_asm_codes=asm_code_converter(parsed_asm_codes)
