@@ -1,0 +1,26 @@
+@startuml
+
+actor User
+participant Assembler as A
+participant Parser as P
+participant SymbolTableManager as STM
+participant CodeConverter as CC
+
+User -> A: main()
+A -> STM: create instance
+A -> P: create instance
+A -> CC: create instance
+
+A -> P: asm_parser(asm_codes)
+activate P
+P -> STM: add_l_symbol(symbol, ac_cmd_line_number)
+P -> STM: add_a_symbol(symbol)
+P -> STM: get_address(symbol)
+deactivate P
+
+A -> CC: asm_code_converter(parsed_asm_codes)
+activate CC
+CC -> STM: get_address(symbol)
+deactivate CC
+
+@enduml

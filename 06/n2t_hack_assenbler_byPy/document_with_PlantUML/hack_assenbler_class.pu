@@ -1,0 +1,28 @@
+@startuml
+
+class Assembler {
+    +main(): void
+}
+
+class SymbolTableManager {
+    -symbolTable: Dict[str, int]
+    +add_l_symbol(symbol: str, ac_cmd_line_number: int): void
+    +add_a_symbol(symbol: str): void
+    +get_address(symbol: str): int
+}
+
+class Parser {
+    -asm_codes: List[str]
+    +asm_parser(asm_codes: List[str]): List[Dict]
+}
+
+class CodeConverter {
+    -parsed_asm_codes: List[Dict]
+    +asm_code_converter(parsed_asm_codes: List[Dict]): List[str]
+}
+
+Assembler --> SymbolTableManager: uses
+Assembler --> Parser: uses
+Assembler --> CodeConverter: uses
+
+@enduml
