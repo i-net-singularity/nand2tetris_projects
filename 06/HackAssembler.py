@@ -2,10 +2,16 @@
 import sys
 import re
 import json
+from symbol_table_manager import SymbolTableManager
 
 from typing import List, Dict
 from collections import namedtuple
 from typing import Tuple
+
+# ------------------------------------------------------------------------------
+# Symbol Table 生成
+# ------------------------------------------------------------------------------
+symbol_table_manager = SymbolTableManager()
 
 # ------------------------------------------------------------------------------
 # Main
@@ -33,26 +39,24 @@ def main():
             asm_codes.append(line.strip())
 
     parsed_asm_codes=asm_parser(asm_codes)
-
     #for line in parsed_asm_codes:
     #    print(line)
 
+    #print("--------------------")
+    #symbol_table_manager.show_dict_all()
+
     converted_asm_codes=asm_code_converter(parsed_asm_codes)
-    for line in converted_asm_codes:
-        print(line)
+    #for line in converted_asm_codes:
+    #    print(line)
 
     # 出力ファイルを書き込みモードで開く
-    #with open(output_file_name, 'w') as output_file:
-    #    # リストに保持した内容を1行ずつ出力ファイルに書き込む
-        #for line in parsed_asm_codes:
-            #output_file.write(line.'cmdType' + '\n')
+    # リストに保持した内容を1行ずつ出力ファイルに書き込む
     with open(output_file_name, 'w') as output_file:
-        for item in converted_asm_codes:
-            output_file.write(item)
-            output_file.write("\n")  # 各ディクショナリの間に空行を挿入
+        for machine_code in converted_asm_codes:
+            output_file.write(machine_code + "\n")
 
 # ------------------------------------------------------------------------------
-# Parser 関数
+# Parser
 # ------------------------------------------------------------------------------
 def asm_parser(asm_codes: List[str]) -> List[Dict]:
     """
@@ -72,7 +76,31 @@ def asm_parser(asm_codes: List[str]) -> List[Dict]:
     a_cmd_pattern = r'^@(.*)'
     l_cmd_pattern = r'\((.*)\)'
 
+    # 1 : L_COMMAND の シンボルテーブルを作成する
+    ac_cmd_line_number= 0
     for line in asm_codes:
+        # コメントを除去する
+        line = line.split('//')[0]
+
+        # 先頭と末尾の空白文字を削除する
+        line = line.strip()
+
+        # 空白行を除去する
+        if line:
+            if  re.match(l_cmd_pattern, line):   # L_COMMAND
+                symbol= re.findall(l_cmd_pattern, line)[0]
+                symbol_table_manager.add_l_symbol(symbol,ac_cmd_line_number)
+            else:
+                ac_cmd_line_number += 1
+
+    # 2 : A_COMMAND/C_COMMAND をパースする（A_COMMANDはシンボルテーブルへの登録も実施する）
+    for line in asm_codes:
+
+        # パース結果初期化
+        symbol = None
+        dest   = None
+        comp   = None
+        jump   = None
 
         # コメントを除去する
         line = line.split('//')[0]
@@ -82,25 +110,21 @@ def asm_parser(asm_codes: List[str]) -> List[Dict]:
 
         # 空白行を除去する
         if line:
-            
+
             # commandType に応じてパースする
-            if re.match('^@', line):       # A_COMMAND
+            if  re.match(l_cmd_pattern, line):   # L_COMMAND
+                cmdType = 'L'
+
+            elif re.match(a_cmd_pattern, line):       # A_COMMAND
                 cmdType = 'A'
                 symbol= re.findall(a_cmd_pattern, line)[0]
-                dest=None
-                comp=None
-                jump=None
 
-            elif  re.match('^\(', line):   # L_COMMAND
-                cmdType = 'L'
-                symbol= re.findall(l_cmd_pattern, line)[0]
-                dest=None
-                comp=None
-                jump=None
+                # symbol が数値以外で構成されている場合、シンボルテーブルに登録する
+                if not symbol.isdecimal():
+                    symbol_table_manager.add_a_symbol(symbol)
 
             else:                           # C_COMMAND
                 cmdType = 'C'
-                symbol=None
 
                 # dest 取得
                 if '=' in line:
@@ -177,8 +201,8 @@ def asm_code_converter(parsed_asm_codes: List[Dict]) -> List[Dict]:
           ,'M-D'  :'1000111'
           ,'D&M'  :'1000000'
           ,'D|M'  :'1010101'
-          },
-        "jump":{
+          }
+       ,"jump":{
            None   :'000'
           ,'JGT'  :'001'
           ,'JEQ'  :'010'
@@ -193,77 +217,52 @@ def asm_code_converter(parsed_asm_codes: List[Dict]) -> List[Dict]:
     converted_asm_codes = []
 
     for line in parsed_asm_codes:
+        # A_COMMAND
         if line['cmdType'] == 'A':
-            aCmdValueConvedToBin = bin(int(line['symbol']))[2:].zfill(15)
 
-            converted_asm_codes.append("0" + aCmdValueConvedToBin)
+            # symbol が数値の場合、そのまま「a_cmd_val」に設定する
+            if line['symbol'].isdecimal():
+                a_cmd_val = line['symbol']
 
+            # symbol が数値以外の場合、シンボルテーブルからアドレスを取得し「a_cmd_val」に設定する
+            else:
+                a_cmd_val = symbol_table_manager.get_address(line['symbol'])
+
+            # 10進数を2進数に変換する(0bは除き、15ビットで0埋め)
+            a_cmd_val_to_bin = bin(int(a_cmd_val))[2:].zfill(15)
+
+            # コードをリストに追加する
+            converted_asm_codes.append("0" + a_cmd_val_to_bin)
+
+        # C_COMMAND
         elif line['cmdType'] == 'C':
-            dest_code = machine_codes_dict['dest'][line['dest']]
-            comp_code = machine_codes_dict['comp'][line['comp']]
-            jump_code = machine_codes_dict['jump'][line['jump']]
 
+            # ニーモニックを対応するバイナリコードに変換する
+            # ニーモニックに対応するバイナリコードが存在しない場合はエラーとする
+            try:
+                dest_code = machine_codes_dict['dest'][line['dest']]
+            except KeyError:
+                print("Error: dest is None -> " + line["code"])
+                sys.exit(1)
+            
+            try:
+                comp_code = machine_codes_dict['comp'][line['comp']]
+            except KeyError:
+                print("Error: comp is None -> " + line["code"])
+                sys.exit(1)
+            try:
+                jump_code = machine_codes_dict['jump'][line['jump']]
+            except KeyError:
+                print("Error: jump is None -> " + line["code"])
+                sys.exit(1)
+
+            # コードをリストに追加する
             converted_asm_codes.append("111" + comp_code + dest_code + jump_code)
 
     return converted_asm_codes
 
-
-
 # ------------------------------------------------------------------------------
-# SymbolTable
+# main
 # ------------------------------------------------------------------------------
-
-
-
 if __name__ == '__main__':
     main()
-    
-
-# 
-
-
-# 6.3.3 シンボルを含まないプログラムのためのアセンブラ
-# アセンブラを作るにあたって、次の2 段階の手順で作ることを推奨する。最初の段
-# 階として、シンボルを用いないアセンブリプログラムを対象に、それを変換するため
-# のアセンブラを書く。これは先ほど説明したParser とCode モジュールを用いて行
-# うことができる。そして次の段階で、シンボルを扱えるように先のアセンブラを拡張
-# する。シンボルの対応については次節で説明する。
-# 最初の「シンボルフリーなアセンブラ」の段階では、Prog.asm にはシンボルが含
-# まれていないことを条件とする。これはつまり、次のふたつの条件を満たすというこ
-# とである。
-# ● すべての@Xxx というタイプのアドレスコマンドにおいて、Xxx は10 進数の
-# 数値であり、シンボルでない。
-# ● 入力ファイルには(Xxx) のようなラベル宣言のコマンドが含まれない。
-# 「シンボルフリーなアセンブラ」は次のように実装することができる。まず
-# Prog.hack という名前の出力ファイルを開き、続いて、与えられたProg.asm
-# ファイルの各行（アセンブリの命令）をひとつずつ処理していく。C 命令に対しては、
-# 各命令フィールドをバイナリコードへと変換し、それらを連結させて16 ビットの命令
-# を構成する。そして、この16 ビット命令をProg.hack ファイルへ書き込む。@Xxx
-# というタイプのA 命令に対しては、Parse モジュールから返された10 進数の数値を
-# バイナリ表現へ変換し、その16 ビットのワードをProg.hack ファイルへ書き込む。
-
-# 6.3.4 SymbolTable モジュール
-# Hack 命令はシンボルを含むため、変換処理のどこかで、シンボルは実際のアドレス
-# 126 6 章アセンブラへと解決されなければならない。この処理にはシンボルテーブルを用いる。シンボル
-# テーブルはシンボルとその内容（Hack の場合、RAM またはROM のアドレス）の対応表が保持される。
-# ほとんどのプログラミング言語で、そのようなデータ構造は標準ライブラリとして用意されているため、ゼロから実装する必要はないだろう。ここでは表6-3 に示すAPI を実装することを推奨する。
-# 表6-3 SymbolTable モジュールのAPI
-# ルーチン引数戻り値機能
-# コンストラクタ/
-# 初期化
-# － － 空のシンボルテーブルを作成する
-# addEntry symbol（文字列）、
-# address（整数）
-# － テーブルに(symbol,adress) のペアを追加する
-# contains symbol（文字列） ブール値シンボルテーブルは与えられたsymbolを含むか？
-# getAddress symbol（文字列） 整数symbol に結びつけられたアドレスを返す
-
-# ----------------------
-# 入力ファイルを読み込む
-#with open(input_file_name, 'r') as input_file:
-#    # 出力ファイルを書き込みモードで開く
-#    with open(output_file_name, 'w') as output_file:
-#        # 入力ファイルの内容を1行ずつ読む
-#        for line in input_file:
-#            # 読み込んだ行をそのまま出力ファイルに書き込む
-#            output_file.write(line)
