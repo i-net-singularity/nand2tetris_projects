@@ -1,7 +1,20 @@
 from typing import List,Dict
 import re
 
-class Parser:
+# Parser.py
+#from typing import List, Dict
+
+#class AsmParser:
+#    def __init__(self):
+#        # ここに、パーサの初期化処理を記述（必要に応じて）
+#
+#    def parse(self, asm_codes: List[str]) -> List[Dict]:
+#        # ここに、実際のアセンブリコードのパース処理を実装
+#        parsed_asm_codes = []
+#        # ...
+#        return parsed_asm_codes
+
+class HackAsmParser:
     """
     Hack仕様のアセンブリ言語をパースするクラス
     """
