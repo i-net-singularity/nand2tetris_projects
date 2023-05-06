@@ -1,5 +1,8 @@
-from typing import List,Dict
 import re
+
+from typing import List,Dict
+from n2t_hack_symbol_table_manager import HackSymbolTableManager
+
 
 # Parser.py
 #from typing import List, Dict
@@ -23,10 +26,10 @@ class HackAsmParser:
         self.parsed_asm_codes = [] 
 
         # マッチパターン
-        a_cmd_pattern = r'^@(.*)'
-        l_cmd_pattern = r'\((.*)\)'
+        self.a_cmd_pattern = r'^@(.*)'
+        self.l_cmd_pattern = r'\((.*)\)'
 
-    def parse_assembly(self,asm_codes: List[str]) -> List[Dict]:
+    def parse_assembly(self,asm_codes: List[str],symbol_table_manager:HackSymbolTableManager) -> List[Dict]:
         """
         Parse a list of assembly codes into a list of dictionaries containing information about the commands.
         
@@ -73,12 +76,12 @@ class HackAsmParser:
             if line:
 
                 # commandType に応じてパースする
-                if  re.match(l_cmd_pattern, line):   # L_COMMAND
+                if  re.match(self.l_cmd_pattern, line):   # L_COMMAND
                     cmdType = 'L'
 
-                elif re.match(a_cmd_pattern, line):       # A_COMMAND
+                elif re.match(self.a_cmd_pattern, line):       # A_COMMAND
                     cmdType = 'A'
-                    symbol= re.findall(a_cmd_pattern, line)[0]
+                    symbol= re.findall(self.a_cmd_pattern, line)[0]
 
                     # symbol が数値以外で構成されている場合、シンボルテーブルに登録する
                     if not symbol.isdecimal():
@@ -105,6 +108,6 @@ class HackAsmParser:
                 data_dict = {'cmdType':cmdType, 'symbol':symbol, 'dest':dest, 'comp':comp, 'jump':jump, 'code' :line}
 
                 # リストにディクショナリを追加
-                parsed_asm_codes.append(data_dict)
+                self.parsed_asm_codes.append(data_dict)
             
-        return parsed_asm_codes
+        return self.parsed_asm_codes
