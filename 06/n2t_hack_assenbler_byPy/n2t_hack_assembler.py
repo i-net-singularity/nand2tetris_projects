@@ -3,8 +3,8 @@
 import sys
 
 from n2t_hack_symbol_table_manager import HackSymbolTableManager
-from n2t_hack_asm_parser           import HackAsmParser
-from n2t_hack_asm_code_converter   import HackAsmCodeConverter
+from n2t_hack_parser               import HackAsmParser
+from n2t_hack_code_converter       import HackAsmCodeConverter
 
 class N2THackAssembler:
     def __init__(self, input_file_name: str, output_file_name: str):
@@ -35,9 +35,9 @@ class N2THackAssembler:
         """
         アセンブリコードのパース
         """
-        # AsmParser インスタンスを作成
+        # HackAsmParser インスタンスを作成
         asm_parser = HackAsmParser()
-        # AsmParser.parse を使用してアセンブリコードをパース
+        # asm_parser.parse_assembly を使用してアセンブリコードをパース
         self.parsed_asm_codes = asm_parser.parse_assembly(self.asm_codes, self.symbol_table_manager)
 
     def convert_asm_codes(self):

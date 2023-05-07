@@ -3,20 +3,6 @@ import re
 from typing import List,Dict
 from n2t_hack_symbol_table_manager import HackSymbolTableManager
 
-
-# Parser.py
-#from typing import List, Dict
-
-#class AsmParser:
-#    def __init__(self):
-#        # ここに、パーサの初期化処理を記述（必要に応じて）
-#
-#    def parse(self, asm_codes: List[str]) -> List[Dict]:
-#        # ここに、実際のアセンブリコードのパース処理を実装
-#        parsed_asm_codes = []
-#        # ...
-#        return parsed_asm_codes
-
 class HackAsmParser:
     """
     Hack仕様のアセンブリ言語をパースするクラス
@@ -77,10 +63,10 @@ class HackAsmParser:
 
                 # commandType に応じてパースする
                 if  re.match(self.l_cmd_pattern, line):   # L_COMMAND
-                    cmdType = 'L'
+                    cmd_type = 'L'
 
                 elif re.match(self.a_cmd_pattern, line):       # A_COMMAND
-                    cmdType = 'A'
+                    cmd_type = 'A'
                     symbol= re.findall(self.a_cmd_pattern, line)[0]
 
                     # symbol が数値以外で構成されている場合、シンボルテーブルに登録する
@@ -88,7 +74,7 @@ class HackAsmParser:
                         symbol_table_manager.add_a_symbol(symbol)
 
                 else:                           # C_COMMAND
-                    cmdType = 'C'
+                    cmd_type = 'C'
 
                     # dest 取得
                     if '=' in line:
@@ -105,7 +91,7 @@ class HackAsmParser:
                         comp = remaining_code.split(';')[0]
 
                 # ディクショナリにパース結果を設定
-                data_dict = {'cmdType':cmdType, 'symbol':symbol, 'dest':dest, 'comp':comp, 'jump':jump, 'code' :line}
+                data_dict = {'cmd_type':cmd_type, 'symbol':symbol, 'dest':dest, 'comp':comp, 'jump':jump, 'code' :line}
 
                 # リストにディクショナリを追加
                 self.parsed_asm_codes.append(data_dict)

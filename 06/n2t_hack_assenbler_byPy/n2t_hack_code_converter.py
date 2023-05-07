@@ -72,7 +72,7 @@ class HackAsmCodeConverter:
         # ニーモニックをバイナリコードに変換する処理
             for line in parsed_asm_codes:
                 # A_COMMAND
-                if line['cmdType'] == 'A':
+                if line['cmd_type'] == 'A':
 
                     # symbol が数値の場合、そのまま「a_cmd_val」に設定する
                     if line['symbol'].isdecimal():
@@ -89,7 +89,7 @@ class HackAsmCodeConverter:
                     self.converted_asm_codes.append("0" + a_cmd_val_to_bin)
 
                 # C_COMMAND
-                elif line['cmdType'] == 'C':
+                elif line['cmd_type'] == 'C':
 
                     # ニーモニックを対応するバイナリコードに変換する
                     # ニーモニックに対応するバイナリコードが存在しない場合はエラーとする
