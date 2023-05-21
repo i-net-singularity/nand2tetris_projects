@@ -155,42 +155,147 @@ class CodeWriter(object):
         print(f' OutFile: {asm_file}')
         self.output_file = open(asm_file, 'w')
 
+        # メモリセグメントと実メモリのマッピング
+        self.segment_dict = {
+            'local'    : 'LCL',
+            'argument' : 'ARG',
+            'this'     : 'THIS',
+            'that'     : 'THAT',
+            'pointer'  : 'R3',
+            'temp'     : 'R5',
+            'static'   : 'R16',
+        }
+
+        # ラベルのカウント：条件分岐毎にインクリメントし固有のラベルを作成する
+        self.label_count = 1
+
     def write_assembly(self, parsed_vm_codes):
         # コマンドタイプに応じてアセンブリコードを出力
         for command in parsed_vm_codes:
-            self.output_line("// " + str(command['vm_code']))    # アセンブリの元となったVMコードを出力
-            if   command['command_type'] == "C_ARITHMETIC":
-                self.write_arithmetic(command)
-            elif command['command_type'] == "C_PUSH" or command['command_type'] == "C_POP" :
-                self.write_push_pop(command)
+            vm_code      = str(command['vm_code'])
+            command_type = str(command['command_type'])
+            arg1         = str(command['arg1'])
+            arg2         = str(command['arg2'])
+
+            self.output_line("// " + vm_code)    # アセンブリの元となったVMコードを出力
+
+            if   command_type == "C_ARITHMETIC" :
+                self.write_arithmetic(arg1,arg2)
+
+            elif command_type == "C_PUSH":
+                self.write_push_pop("C_PUSH",arg1,arg2)
+            elif command_type == "C_POP":
+                self.write_push_pop("C_POP" ,arg1,arg2)
             else:
                 pass
         
-    def write_arithmetic(self,command):
-        # 2項演算子の場合
-        self.output_line("@SP")
-        self.output_line("M=M-1")
+    def write_arithmetic(self,arg1,arg2):
+
+        self.pop_stack_to_D()
+
+        # unary operator
+        if arg1 in ("neg","not"):
+
+            if arg1 == "neg":
+                self.output_line("M=-D") 
+
+            if arg1 == "not":
+                self.output_line("M=!D") 
+
+        # binary operator
+        elif arg1 in ("add","sub","and","or"):
+            self.sp_decrement()
+            self.output_line("A=M")
+            if   arg1 == "add":
+                self.output_line("M=D+M") 
+            elif arg1 == "sub":
+                self.output_line("M=M-D")
+            elif arg1 == "and":
+                self.output_line("M=D&M")
+            elif arg1 == "or":
+                self.output_line("M=D|M")
+
+        elif arg1 in ("eq","gt","lt"):
+            self.sp_decrement()
+            self.output_line("A=M")
+            self.output_line("D=M-D")
+
+            # Comparison part
+            label_true  = "LABEL" + str(self.label_count).zfill(5) + "_TRUE"
+            label_end   = "LABEL" + str(self.label_count).zfill(5) + "_END"
+
+            self.output_line("@" + label_true)
+            if arg1 == "eq":
+                self.output_line("D;JEQ")
+            elif arg1 == "gt":
+                self.output_line("D;JGT")
+            elif arg1 == "lt":
+                self.output_line("D;JLT")
+
+            # if false
+            self.output_line("@SP")
+            self.output_line("A=M")
+            self.output_line("M=0") # set false value
+            self.output_line("@" + label_end)
+            self.output_line("0;JMP")
+            
+            # if true
+            self.output_line("(" + label_true + ")")
+            self.output_line("@SP")
+            self.output_line("A=M")
+            self.output_line("M=-1") #set true value (-1 = 0xffff)
+
+            self.output_line("(" + label_end + ")")
+            self.label_count += 1
+
+        self.sp_increment()
+
+    def write_push_pop(self,command_type,arg1,arg2):
+        # memo address 解決必要あり
+        if(command_type == "C_PUSH"):
+            if(arg1 == "constant"):
+                self.output_line("@" + arg2)
+                self.output_line("D=A")
+                self.push_D_to_stack()
+
+        if(command_type == "C_POP"):
+            self.output_line("@" + arg2)
+
+    def push_D_to_stack(self):
+        '''Push from D onto top of stack, increment @SP'''
+        self.output_line("@SP") # Get current stack pointer
+        self.output_line("A=M") # Set address to current stack pointer
+        self.output_line("M=D") # Write data to top of stack
+        self.sp_increment()     # Increment SP
+
+    def pop_stack_to_D(self):
+        '''Decrement @SP, pop from top of stack onto D'''
+        self.sp_decrement()
         self.output_line("A=M")
         self.output_line("D=M")
-        self.output_line("@SP")
-        self.output_line("M=M-1")
-        self.output_line("A=M")
-        self.output_line("M=D+M")
+
+    def sp_increment(self):
         self.output_line("@SP")
         self.output_line("M=M+1")
 
-    def write_push_pop(self,command):
-        if(command['command_type'] == "C_PUSH"):
-            self.output_line("@" + command['arg2'])
-            self.output_line("D=A")
-            self.output_line("@SP")
-            self.output_line("A=M")
-            self.output_line("M=D")
-            self.output_line("@SP")
-            self.output_line("M=M+1")
+    def sp_decrement(self):
+        self.output_line("@SP")
+        self.output_line("M=M-1")
 
-        if(command['command_type'] == "C_POP"):
-            self.output_line("@" + command['arg2']+"\n")
+    #def push_D_to_stack(self):
+    #    '''Push from D onto top of stack, increment @SP'''
+    #    self.write('@SP') # Get current stack pointer
+    #    self.write('A=M') # Set address to current stack pointer
+    #    self.write('M=D') # Write data to top of stack
+    #    self.write('@SP') # Increment SP
+    #    self.write('M=M+1')
+
+    #def pop_stack_to_D(self):
+    #    '''Decrement @SP, pop from top of stack onto D'''
+    #    self.write('@SP')
+    #    self.write('M=M-1') # Decrement SP
+    #    self.write('A=M') # Set address to current stack pointer
+    #    self.write('D=M') # Get data from top of stack
 
     def output_line(self,mnemonic):
         print(mnemonic,file=self.output_file)
