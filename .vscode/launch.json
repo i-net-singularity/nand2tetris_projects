@@ -1,0 +1,24 @@
+{
+// IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "cwd":"${workspaceFolder}\\07\\StackArithmetic",
+            //"cwd":"${workspaceFolder}\\07\\MemoryAccess",
+            //"program": "${file}",
+            "program": "${workspaceFolder}\\07\\n2t_hack_vm_translator.py",
+            //"program": "${workspaceFolder}\\07\\VMtranslator_sample.py",
+            "args": ["./StackTest/"],
+            //"args": ["./BasicTest/"],
+            //"args": ["./PointerTest/"],
+            //"args": ["./StaticTest/"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
