@@ -319,6 +319,7 @@ class CodeWriter(object):
 
     def write_function(self,function_name,num_locals):
         pass
+    
     def write_return(self):
         pass
     def write_call(self,function_name,num_args):
