@@ -110,6 +110,7 @@ class VMParser(object):
             'if-goto'  : 'C_IF',
             'function' : 'C_FUNCTION',
             'return'   : 'C_RETURN',
+            'call'     : 'C_CALL',
         }
     
     def vm_parse(self,lines):
@@ -188,9 +189,15 @@ class CodeWriter(object):
                 self.write_goto(arg1)
             elif command_type in ("C_IF"):
                 self.write_if(arg1)
+            elif command_type in ("C_FUNCTION"):
+                self.write_function(arg1,arg2)
+            elif command_type in ("C_RETURN"):
+                self.write_return()
+            elif command_type in ("C_CALL"):
+                self.write_call(arg1,arg2)
             else:
                 pass
-    
+
     def write_init(self):
         #self.output_line("@256")
         #self.output_line("D=A")
@@ -310,13 +317,11 @@ class CodeWriter(object):
         self.output_line(f"@{self.vm_filename}${label}")
         self.output_line(f"D;JNE")
 
-    def write_call(self):
+    def write_function(self,function_name,num_locals):
         pass
-
     def write_return(self):
         pass
-
-    def write_function(self):
+    def write_call(self,function_name,num_args):
         pass
 
     def push_D_to_stack(self):
