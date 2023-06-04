@@ -318,8 +318,11 @@ class CodeWriter(object):
         self.output_line(f"D;JNE")
 
     def write_function(self,function_name,num_locals):
-        pass
-    
+        self.output_line(f"({function_name})")
+        for i in range(int(num_locals)):
+            self.output_line("D=0")
+            self.push_D_to_stack()
+
     def write_return(self):
         pass
     def write_call(self,function_name,num_args):
