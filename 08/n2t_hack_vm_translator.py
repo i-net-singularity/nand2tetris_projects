@@ -324,9 +324,93 @@ class CodeWriter(object):
             self.push_D_to_stack()
 
     def write_return(self):
-        pass
+        #FRAME = LCL:
+        #「FRAME」は仮想的なポインタで、現在の「LCL」（Local ポインタ）の値を指す。
+        FRAME="R13"
+        self.output_line("@LCL")
+        self.output_line("D=M")
+        self.output_line(f"@{FRAME}")
+        self.output_line("M=D")
+
+        #RET = *(FRAME-5):
+        #「RET」（Return）は仮想的なポインタで、「FRAME」から5引いた値にあるデータ（現在の関数が呼び出された場所）を指す。
+        RET="R14"
+        self.output_line(f"@{FRAME}")
+        self.output_line("D=M")
+        self.output_line("@5")
+        self.output_line("A=D-A")
+        self.output_line("D=M")
+        self.output_line(f"@{RET}")
+        self.output_line("M=D")
+
+        #*ARG = pop():
+        #スタックから一つ値を取り出し（pop）、それを「ARG」が指すアドレスに格納する。これにより関数の返り値を設定する。
+        self.pop_stack_to_D()
+        self.output_line("@ARG")
+        self.output_line("A=M")
+        self.output_line("M=D")
+
+        #SP = ARG+1:
+        #「SP」（Stack Pointer）を「ARG」の値に1を足した位置に移動する。これによりスタックポインタを返り値のすぐ上に移動させる。
+        self.output_line("@ARG")
+        self.output_line("D=M")
+        self.output_line("@SP")
+        self.output_line("M=D+1")
+
+        #THAT = *(FRAME-1), THIS = *(FRAME-2), ARG = *(FRAME-3), LCL = *(FRAME-4):
+        #「FRAME」から1～4引いた各値にあるデータを、それぞれ「THAT」、「THIS」、「ARG」、「LCL」に設定する。これにより呼び出し元の関数の状態を復元する。
+        offset=1
+        for symbol in ("THAT","THIS","ARG","LCL"):
+            self.output_line(f"@{FRAME}")
+            self.output_line("D=M")
+            self.output_line(f"@{offset}")
+            self.output_line("A=D-A")
+            self.output_line("D=M")
+            self.output_line(f"@{symbol}")
+            self.output_line("M=D")
+            offset += 1
+
+        #goto RET:
+        #「RET」が指すアドレスへジャンプする。これにより戻り先のアドレスへ制御を移す。
+        self.output_line(f"@{RET}")
+        self.output_line("A=M")
+        self.output_line("0;JMP")
+        
     def write_call(self,function_name,num_args):
-        pass
+        #push return-address //（ 以下のラベル宣言を用いる）
+        self.output_line("@RETURN-ADDRESS")
+
+        #push LCL            // 関数の呼び出し側のLCLを格納する
+        #push ARG            // 関数の呼び出し側のARGを格納する
+        #push THIS           // 関数の呼び出し側のTHISを格納する
+        #push THAT           // 関数の呼び出し側のTHATを格納する
+        for symbol in ("LCL","ARG","THIS","THAT"):
+            self.output_line(f"@{symbol}")
+            self.output_line("D=M")
+            self.push_D_to_stack()
+
+        #ARG = SP-n-5        // ARGを別の場所に移す（n＝引数の数）
+        self.output_line("@SP")
+        self.output_line("D=M")
+        self.output_line(f"@{num_args}")
+        self.output_line("D=D-A")
+        self.output_line("@5")
+        self.output_line("D=D-A")
+        self.output_line("@ARG")
+        self.output_line("M=D")
+
+        #LCL = SP            // LCLを別の場所に移す
+        self.output_line("@SP")
+        self.output_line("D=M")
+        self.output_line("@LCL")
+        self.output_line("M=D")
+
+        #goto f              // 制御を移す
+        self.output_line(f"@{function_name}")
+        self.output_line("0;JMP")
+
+        #(return-address)    // リターンアドレスのためのラベルを宣言する
+        self.output_line("(RETURN-ADDRESS)")
 
     def push_D_to_stack(self):
         self.set_A_to_stack()
