@@ -143,12 +143,15 @@ class VMParser(object):
 
 class CodeWriter(object):
     def __init__(self,asm_file):
+
         """
         生成した機械語のファイル出力
         """
-        print(f' OutFile: {asm_file}')
-        self.output_file = open(asm_file, 'w')
-        self.write_init()
+
+        # 条件分岐ラベルのカウント：条件分岐毎にインクリメントし固有のラベルを作成する
+        self.label_count = 0
+        # コールラベルのカウント：関数呼び出し毎にインクリメントし固有のラベルを作成する
+        self.call_count = 0
 
         # メモリセグメントと実メモリのマッピング
         self.segment_dict = {
@@ -162,8 +165,9 @@ class CodeWriter(object):
             'constant' : 'undefined'    # 実メモリへの割り当てなし
         }
 
-        # ラベルのカウント：条件分岐毎にインクリメントし固有のラベルを作成する
-        self.label_count = 1
+        print(f' OutFile: {asm_file}')
+        self.output_file = open(asm_file, 'w')
+        self.write_init()
 
     def write_assembly(self, vm_filepath,parsed_vm_codes):
         # VMファイル名を設定
@@ -199,12 +203,12 @@ class CodeWriter(object):
                 pass
 
     def write_init(self):
-        #self.output_line("@256")
-        #self.output_line("D=A")
-        #self.output_line("@SP")
-        #self.output_line("M=D")
-        pass
-        
+        self.output_line("@256")
+        self.output_line("D=A")
+        self.output_line("@SP")
+        self.output_line("M=D")
+        self.write_call("Sys.init","0")
+
     def write_arithmetic(self,command):
 
         self.pop_stack_to_D()
@@ -308,9 +312,8 @@ class CodeWriter(object):
         self.output_line(f"({self.vm_filename}${label})")
     
     def write_goto(self,label):
-        self.pop_stack_to_D()
         self.output_line(f"@{self.vm_filename}${label}")
-        self.output_line(f"D;JMP")
+        self.output_line(f"0;JMP")
 
     def write_if(self,label):
         self.pop_stack_to_D()
@@ -377,8 +380,14 @@ class CodeWriter(object):
         self.output_line("0;JMP")
         
     def write_call(self,function_name,num_args):
+        #コールラベル生成
+        return_address_label=(f"{function_name}RET{str(self.call_count)}")
+        self.call_count+=1
+
         #push return-address //（ 以下のラベル宣言を用いる）
-        self.output_line("@RETURN-ADDRESS")
+        self.output_line(f"@{return_address_label}")
+        self.output_line("D=A")
+        self.push_D_to_stack()
 
         #push LCL            // 関数の呼び出し側のLCLを格納する
         #push ARG            // 関数の呼び出し側のARGを格納する
@@ -392,9 +401,7 @@ class CodeWriter(object):
         #ARG = SP-n-5        // ARGを別の場所に移す（n＝引数の数）
         self.output_line("@SP")
         self.output_line("D=M")
-        self.output_line(f"@{num_args}")
-        self.output_line("D=D-A")
-        self.output_line("@5")
+        self.output_line(f"@{int(num_args)+5}")
         self.output_line("D=D-A")
         self.output_line("@ARG")
         self.output_line("M=D")
@@ -410,7 +417,7 @@ class CodeWriter(object):
         self.output_line("0;JMP")
 
         #(return-address)    // リターンアドレスのためのラベルを宣言する
-        self.output_line("(RETURN-ADDRESS)")
+        self.output_line(f"({return_address_label})")
 
     def push_D_to_stack(self):
         self.set_A_to_stack()
