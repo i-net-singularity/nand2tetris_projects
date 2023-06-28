@@ -32,8 +32,17 @@ hs_err_pid*
 *.hack
 *.ignore
 *.pyc
+*.vm
+*.xml
+*.asm
+*.jack
 
 # ETC
-07/*/*/*.asm
+
+07/*/*/*.(asm|vm)
+08/*/*/*.(asm|vm)
+09/*/*/*.(asm|vm)
+10/*/*/*.(asm|vm)
+11/*/*/*.(asm|vm)
 */VMtranslator_byPy_Sample/
 *.xlsx
