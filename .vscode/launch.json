@@ -11,9 +11,11 @@
             //"cwd":"${workspaceFolder}\\07\\StackArithmetic",
             //"cwd":"${workspaceFolder}\\07\\MemoryAccess",
             //"cwd":"${workspaceFolder}\\08\\ProgramFlow",
-            "cwd":"${workspaceFolder}\\08\\FunctionCalls",
+            //"cwd":"${workspaceFolder}\\08\\FunctionCalls",
+            //"cwd":"${workspaceFolder}\\09",
             //"program": "${file}",
-            "program": "${workspaceFolder}\\08\\n2t_hack_vm_translator.py",
+            //"program": "${workspaceFolder}\\08\\n2t_hack_vm_translator.py",
+            //"program": "${workspaceFolder}\\06\\n2t_hack_assenbler_byPy\\n2t_hack_assembler.py",
             //"program": "${workspaceFolder}\\08\\VMtranslator_sample.py",
             //"args": ["./StackTest/"],
             //"args": ["./BasicTest/"],
@@ -22,9 +24,20 @@
             //"args": ["./BasicLoop/"],
             //"args": ["./FibonacciSeries/"],
             //"args": ["./SimpleFunction/"],
-            "args": ["./FibonacciElement/"],
+            //"args": ["./FibonacciElement/"],
+            //"args": ["./MyHelloWorld/"],
+            //"args": ["./MyHelloWorld/MyHelloWorld.asm","./MyHelloWorld/MyHelloWorld.hack"],
+            //"args": ["C:/01_Google_D/GitHub/SC_nand2tetris/nand2tetris/projects/09/MyHelloWorld/."],
             //"args": ["./NestedCall/"],
             //"args": ["./StaticsTest/"],
+            //------------------------------------------------------------------
+            //Capter 10 JackAnalyzer
+            //------------------------------------------------------------------
+            "cwd":"${workspaceFolder}\\10",
+            //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
+            "program": "${workspaceFolder}\\10\\n2t_jack_analyzer.py",
+            "args": ["./Square/"],
+
             "console": "integratedTerminal",
             "justMyCode": true
         }
