@@ -1,8 +1,11 @@
 #!python
 import sys,os
+from collections import deque
 from typing import List,Dict
 
-VM_COMENT = '//'
+ANALYZE_MODE = 'xml' # 'xml' or 'vm'
+
+JACK_COMENT_1 = '//'
 VM_TRUE   = '-1'
 VM_FALSE  = '0'
 
@@ -10,30 +13,60 @@ class N2TJackAnalyzer(object):
 
     def __init__(self, target_file_path: str):
         
-        self.vm_files = []
-        self.asm_file = None
+        self.jack_files = []                # jackファイル名を格納するリスト
+        #self.out_file = None
 
-        self.vm_codes = {}              # ファイルごとに1行ごとのVMコードを格納する
-        self.parsed_vm_codes = {}       # ファイルごとにVMコードのパース結果を格納する
-        self.asm_codes = []
+        self.jack_codes = {}              # ファイルごとに1行ごとのVMコードを格納する
+        self.parsed_jack_codes = {}       # ファイルごとにVMコードのパース結果を格納する
+        self.vm_codes = []
 
     def run(self):
-        self.prepare_file_paths(target_file_path)                               # 入力ファイル名と出力ファイル名を設定
-        self.load_vm_codes()                                                    # 入力ファイルの内容をリストに取り込む
-        self.vm_tranlate()
+        self.jack_files = self.prepare_file_paths(target_file_path)              # 入力ファイル名と出力ファイル名を設定
+        
+        # 1ファイルごとにJackコードをコンパイルする
+        for jack_file in self.jack_files:
+            tokenizer = JackTokenizer(jack_file)
+
+            #ce = CompilationEngine(jack_file)
+            while tokenizer.has_more_tokens():
+                tokenizer.advance()
+                #print(tokenizer.get_token_type)
+                if tokenizer.token_type == 'KEYWORD':
+                    print(f"<keyword> {tokenizer.get_key_word} </keyword>")
+                    #ce.write_token('keyword', tokenizer.current_token)
+                elif tokenizer.token_type == 'SYMBOL':
+                    print(f"<symbol> {tokenizer.get_symbol} </symbol>")
+                    #ce.write_token('symbol', tokenizer.current_token)
+                elif tokenizer.token_type == 'INT_CONST':
+                    print(f"<int> {tokenizer.get_int_val} </int>")
+                #    pass
+                    #ce.write_token('integerConstant', str(tokenizer.current_token))
+                elif tokenizer.token_type == 'STRING_CONST':
+                    print(f"<str> {tokenizer.get_string_val} </str>")
+                #    pass
+                    #ce.write_token('stringConstant', tokenizer.current_token)
+                elif tokenizer.token_type == 'IDENTIFIER':
+                    print(f"<ident> {tokenizer.get_identifier} </ident>")
+                #    pass
+                    #ce.write_token('identifier', tokenizer.current_token)
+            #ce.close()
+
+        #self.load_vm_codes()                                                    # 入力ファイルの内容をリストに取り込む
+        #self.vm_tranlate()
 
     def prepare_file_paths(self, file_path):
+        """
+        入力Jackファイル名を取得する
+        """
         print(" file_path = " + file_path)
 
-        if '.vm' in file_path:
-            # --------------------------
-            # ファイル指定の場合
-            # --------------------------
-            # 入力ファイル名を self.vm_files に設定
-            self.vm_files = [file_path]
-            # 出力ファイル名を self.asm_file に設定（拡張子を '.vm' から '.asm' に置換する）
-            self.asm_file = file_path.replace('.vm', '.asm')
+        # ファイル指定の場合
+        if file_path.endswith('.jack'):
 
+            # 入力ファイル名を self.jack_files に設定
+            jack_files = [file_path]
+
+        # ファイル指定意外の場合
         else:
             # --------------------------
             # ディレクトリ指定の場合
@@ -44,19 +77,35 @@ class N2TJackAnalyzer(object):
             # os.walk を使ってディレクトリパス、ディレクトリ名、ファイル名を取得
             dirpath, dirnames, filenames = next(os.walk(file_path), ([], [], []))
 
-            # '.vm' を含むファイルのみ対象とする
-            vm_files = [filename for filename in filenames if '.vm' in filename]
+            # 末尾に '.jack' を含むファイルのみ対象とする
+            jack_files = [filename for filename in filenames if filename.endswith('.jack')]
 
-            # 入力ファイル名を self.vm_files に設定（複数ファイルを想定）
-            self.vm_files = [f"{file_path}/{vm_file}" for vm_file in vm_files]
+            # 入力ファイル名を self.jack_files に設定（複数ファイルを想定）
+            jack_files = [f"{file_path}/{jack_file}" for jack_file in jack_files]
 
-            # 出力ファイル名を self.asm_file に設定（ディレクトリ名.asm）
-            path_elements = file_path.split('/')
-            self.asm_file = f"{file_path}/{path_elements[-1]}.asm"
+        for jack_file in jack_files:
+            print(" target_jack_file = " + jack_file)
+
+        # 入力ファイルの存在チェック
+        try:
+            for file_name in jack_files:
+                if not os.path.exists(file_name):
+                    raise FileNotFoundError(f"ERROR : \"{file_name}\" does not exist.")
+                else:
+                    return jack_files
+        except FileNotFoundError as e:
+            print(e, file=sys.stderr)
+            sys.exit(0)
+        
+        
+    
+            # 出力ファイル名を self.out_file に設定（ディレクトリ名.asm）
+            #path_elements = file_path.split('/')
+            #self.out_file = f"{file_path}/{path_elements[-1]}.asm"
 
     def load_vm_codes(self):
         # 入力ファイルの内容をリストに取り込む
-        for vm_files in self.vm_files :
+        for vm_files in self.jack_files :
             self.vm_codes[vm_files] = []
             with open(vm_files, 'r') as input_file:
                 # 入力ファイルの内容を1行ずつ読む
@@ -64,13 +113,12 @@ class N2TJackAnalyzer(object):
                     # 読み込んだ行をリストに追加
                     self.vm_codes[vm_files].append(line.strip())
 
-
     def vm_tranlate(self):
         """
         VMコードの変換
         """
 
-        code_writer = CodeWriter(self.asm_file)
+        code_writer = CodeWriter(self.out_file)
 
         for vm_filepath, lines in self.vm_codes.items():
             print(f' File: {vm_filepath}')
@@ -82,6 +130,165 @@ class N2TJackAnalyzer(object):
             code_writer.write_assembly(vm_filepath,vm_parser.parsed_vm_codes)
 
         code_writer.close()
+
+class JackTokenizer(object):
+    def __init__(self,jack_filename):
+        self.jack_filename = jack_filename
+        self.jack_words = self.load_file(self.jack_filename) 
+        print(self.jack_words)
+        self.tokens = []
+        self.token_types = []
+
+        self.keywords_dict = {
+            'class'       : 'CLASS',
+            'method'      : 'METHOD',
+            'function'    : 'FUNCTION',
+            'constructor' : 'CONSTRUCTOR',
+            'int'         : 'INT',
+            'boolean'     : 'BOOLEAN',
+            'char'        : 'CHAR',
+            'void'        : 'VOID',
+            'var'         : 'VAR',
+            'static'      : 'STATIC',
+            'field'       : 'FIELD',
+            'let'         : 'LET',
+            'do'          : 'DO',
+            'if'          : 'IF',
+            'else'        : 'ELSE',
+            'while'       : 'WHILE',
+            'return'      : 'RETURN',
+            'true'        : 'TRUE',
+            'false'       : 'FALSE',
+            'null'        : 'NULL',
+            'this'        : 'THIS',
+        }
+        self.symbols = ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~']
+        
+        self.token_index = 0
+        self.current_token = None
+        self.current_token_type = None
+
+    #######################
+    ## API START ##########
+    def has_more_tokens(self):
+        return len(self.jack_words) > 0
+    
+    def advance(self):
+        next_token=self.jack_words.popleft()
+
+        #print(next_token+" <= ## org-code ##")
+
+        # Case:keyword
+        if next_token in self.keywords_dict:
+            self.token_type = 'KEYWORD'
+            self.current_token = next_token
+            return
+
+        # Case:symbol
+        if next_token[0] in self.symbols:
+            self.token_type = 'SYMBOL'
+            self.current_token = next_token[0]
+            if next_token[1:] :
+                self.jack_words.appendleft(next_token[1:])
+            return
+
+        # Case:integerConstant
+        if next_token[0].isdigit():
+            self.token_type = 'INT_CONST'
+            current_int = next_token[0:]
+            full_int = ''
+            while True:
+                for i, num in enumerate(current_int):
+                    if not num.isdigit():
+                        full_int += current_int[:i]
+                        if(current_int[i:]):
+                            self.jack_words.appendleft(current_int[i:])
+                        self.current_token = full_int.strip()
+                        return
+
+        # Case:stringContant
+        if next_token[0] == '"':                                              # トークンの先頭が'"' の場合、"STRING_CONST" の開始と判断する
+            self.token_type = 'STRING_CONST'
+            current_string = next_token[1:]                                   # トークンの２文字目から最後まで current_string に代入
+            full_string = ''                                                  # 最終的な文字列定数を保持するfull_stringを空文字列で初期化します
+            while True:                                                       # 文字列定数の終端が見つかるまで無限ループを開始します
+                for i, char in enumerate(current_string):                     # 現在の文字列の各文字に対して
+                    if char == '"':                                           # 文字がダブルクォーテーションなら、文字列定数の終端と判断します
+                        full_string += current_string[:i]                     # 終了クォートの前の文字を全文字列に追加します
+                        if current_string[i+1:]:                              # 終了クォートの後に文字がある場合
+                            self.jack_words.appendleft(current_string[i+1:])  # それらをjack_wordsの先頭に追加します
+                        self.current_token = full_string.strip()              # 現在のトークンを、前後の空白を削除した全文字列として設定します
+                        return                                                # 文字列定数が完全に処理されたので、関数を終了します
+                full_string += current_string + ' '                           # 終了クォートが見つからない場合、現在の文字列とスペースを全文字列に追加します
+                current_string = self.jack_words.popleft()                    # jack_wordsから次のトークンを取得し、ループを続行します
+
+        # Case:identifier (上記のどのケースにも当てはまらない場合)
+        self.token_type = 'IDENTIFIER'
+        self.current_token = next_token
+        return
+    
+    @property
+    def get_token_type(self):
+        return self.token_type
+    @property
+    def get_key_word(self):
+        return self.keywords_dict[self.current_token]
+    @property
+    def get_symbol(self):
+        return self.current_token
+    @property
+    def get_int_val(self):
+        return self.current_token
+
+    @property
+    def get_identifier(self):
+        return self.current_token
+    @property
+    def get_string_val(self):
+        return self.current_token
+    
+    ## API END ############
+    #######################
+
+    def load_file(self, jack_filename: str) -> deque:
+        
+        print(f' - Loading {jack_filename}')
+        with open(jack_filename, 'r',encoding='utf-8') as f:
+            contents = f.read()
+
+        # 改行コードで分割する
+        contents = contents.split('\n')
+
+        # コメントを除去する
+        contents = [l.split('//')[0] for l in contents]
+
+        # 先頭と末尾の空白文字を削除する
+        contents = [l.strip() for l in contents]
+        
+        # ブロックコメントを除去する
+        in_comment = False
+        for i, line in enumerate(contents):
+            start, end = line[:2], line[-2:]
+            if start == '/*':
+                in_comment = True
+
+            if in_comment:
+                contents[i] = ''
+
+            if start == '*/' or end == '*/':
+                in_comment = False
+        
+        # 空白行を除去する
+        contents = [l for l in contents if l != '']
+        
+        # contentsを空白で分割しワード単位のリストにする
+        words = []
+        for line in contents:
+            words.extend(line.split())
+
+        # リストをデックに変換して返す
+        return deque(words)
+
 
 class VMParser(object):
 
@@ -115,7 +322,7 @@ class VMParser(object):
     def vm_parse(self,lines):
         self.parsed_vm_codes=[]
         for line in lines:
-            line = line.split(VM_COMENT)[0].strip()
+            line = line.split(JACK_COMENT_1)[0].strip()
             if line :
                 # ディクショナリにパース結果を設定
                 command_tokens = line.split()
@@ -141,7 +348,7 @@ class VMParser(object):
                 self.parsed_vm_codes.append(parsed_line)
 
 class CodeWriter(object):
-    def __init__(self,asm_file):
+    def __init__(self,out_file):
 
         """
         生成した機械語のファイル出力
@@ -170,7 +377,7 @@ class CodeWriter(object):
 
     def write_assembly(self, vm_filepath,parsed_vm_codes):
         # VMファイル名を設定
-        self.vm_filename=vm_filepath.split('/')[-1].split('.')[0]
+        self.out_filename=vm_filepath.split('/')[-1].split('.')[0]
         # コマンドタイプに応じてアセンブリコードを出力
         for command in parsed_vm_codes:
             vm_code      = str(command['vm_code'])
@@ -178,7 +385,7 @@ class CodeWriter(object):
             arg1         = str(command['arg1'])
             arg2         = str(command['arg2'])
 
-            self.output_line(f"{VM_COMENT} {vm_code}")    # アセンブリの元となったVMコードを出力
+            self.output_line(f"{JACK_COMENT_1} {vm_code}")    # アセンブリの元となったVMコードを出力
 
             if   command_type == "C_ARITHMETIC" :
                 self.write_arithmetic(arg1)
@@ -288,7 +495,7 @@ class CodeWriter(object):
                 self.output_line(f"@R{str(int(segment_address) + int(index))}")
 
             elif(segment == "static"):
-                self.output_line(f"@{self.vm_filename}.{index}")
+                self.output_line(f"@{self.out_filename}.{index}")
  
         # (3) PUSH/POPを実行する
         if(command_type == "C_PUSH"):
@@ -308,15 +515,15 @@ class CodeWriter(object):
              self.output_line("M=D")
 
     def write_label(self,label):
-        self.output_line(f"({self.vm_filename}${label})")
+        self.output_line(f"({self.out_filename}${label})")
     
     def write_goto(self,label):
-        self.output_line(f"@{self.vm_filename}${label}")
+        self.output_line(f"@{self.out_filename}${label}")
         self.output_line(f"0;JMP")
 
     def write_if(self,label):
         self.pop_stack_to_D()
-        self.output_line(f"@{self.vm_filename}${label}")
+        self.output_line(f"@{self.out_filename}${label}")
         self.output_line(f"D;JNE")
 
     def write_function(self,function_name,num_locals):
@@ -448,14 +655,14 @@ class CodeWriter(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: python3 n2t_hack_vm_translator.py <input_file> or <input_dir>")
+        print("Usage: python3 n2t_jack_analyzer.py <input_file> or <input_dir>")
         sys.exit(1)
 
-    print("VM Translate Start")
+    print("Jack Analyze Start")
     target_file_path  = sys.argv[1]
 
     vm_translator = N2TJackAnalyzer(target_file_path)
     vm_translator.run()
 
-    print("VM Translate End")
+    print("Jack Analyze End")
 
