@@ -37,8 +37,8 @@
             //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
             "program": "${workspaceFolder}\\10\\n2t_jack_analyzer.py",
             //"args": ["./Square/Square.jack"],
-            "args": ["./Square/test.jack"],
-            //"args": ["./Square/"],
+            //"args": ["./Square/test.jack"],
+            "args": ["./Square/"],
 
             "console": "integratedTerminal",
             "justMyCode": true
