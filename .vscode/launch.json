@@ -36,9 +36,13 @@
             "cwd":"${workspaceFolder}\\10",
             //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
             "program": "${workspaceFolder}\\10\\n2t_jack_analyzer.py",
-            //"args": ["./Square/Square.jack"],
-            //"args": ["./Square/test.jack"],
+            //"args": ["./ExpressionLessSquare/Main.jack"],
+            //"args": ["./ExpressionLessSquare/SquareGame.jack"],
+            //"args": ["./ExpressionLessSquare/"],
+            //"args": ["./Square/Main.jack"],
+            //args": ["./Square/Square.jack"],
             "args": ["./Square/"],
+            //"args": ["./ArrayTest/"],
 
             "console": "integratedTerminal",
             "justMyCode": true
