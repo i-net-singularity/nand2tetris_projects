@@ -3,6 +3,9 @@ import sys,os,html
 from collections import deque
 from typing import List,Dict
 
+#######################
+# 定数
+#######################
 ANALYZE_MODE = 'xml' # 'xml' or 'vm'
 
 JACK_COMENT_1 = '//'
@@ -13,6 +16,14 @@ TERMINAL=True
 NON_TERMINAL=False
 START_TAG=True
 END_TAG=False
+
+TOKEN_TAG_DICT = {
+    'KEYWORD'     : 'keyword',
+    'SYMBOL'      : 'symbol',
+    'IDENTIFIER'  : 'identifier',
+    'INT_CONST'   : 'integerConstant',
+    'STRING_CONST': 'stringConstant',
+}
 
 class N2TJackAnalyzer(object):
 
@@ -91,28 +102,29 @@ class CompilationEngine(object):
     
     @property
     def compile_jack(self):
-        
-        # 1ファイルごとにJackコードをコンパイルする
-        #while self.jt.has_more_tokens:
-        self.jt.advance
-        self.complie_class()
 
+        # debug for Tokenizer
+        #while self.jt.has_more_tokens :
+        #    self.jt.advance
+        #self.jt.output_close
+
+        # 1ファイルごとにJackコードをコンパイルする
+        self.jt.advance
+        self.compile_class()
         self.jt.output_close
         self.output_close()
-
 
     ## API END ############
     #######################
 
-    ############################################################################
+    #######################
     # プログラム構造
-    ############################################################################
-    def complie_class(self):
+    #######################
+    def compile_class(self):
         '''
         class: 'class' className '{' classVarDec* subroutineDec* '}'
         '''
-        self.output_line_xml('class','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('class',START_TAG)
 
         self.output_terminal_and_advance('keyword')
         self.output_terminal_and_advance('identifier')
@@ -120,288 +132,249 @@ class CompilationEngine(object):
         
         # classVarDec*
         while (self.jt.token_type == 'KEYWORD' and self.jt.current_token in ('static','field')):
-            self.complie_class_var_dec()
+            self.compile_class_var_dec()
         
         # subroutineDec*
         while (self.jt.token_type == 'KEYWORD' and self.jt.current_token in ('constructor','function','method')):
-            self.complie_subroutine_dec()
+            self.compile_subroutine()
 
         self.output_terminal('symbol')
         #self.jt.advance <= classは最終要素のため、advance しない
+        
+        self.output_nonterminal('class',END_TAG)
 
-        self.indent_lv -= 1
-        self.output_line_xml('class','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
-
-    def complie_class_var_dec(self):
+    def compile_class_var_dec(self):
         '''
         classVarDec: ('static' | 'field') type varName (',' varName)* ';'
         '''
-        self.output_line_xml('classVarDec','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('classVarDec',START_TAG)
 
         self.output_terminal_and_advance('keyword')
-        self.complie_type()
+        self.output_terminal_and_advance(TOKEN_TAG_DICT[self.jt.token_type])
         self.output_terminal_and_advance('identifier')
-
         while self.jt.token_type == 'SYMBOL' and self.jt.current_token in (','):
             self.output_terminal_and_advance('symbol')
             self.output_terminal_and_advance('identifier')
-        
         self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('classVarDec','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('classVarDec',END_TAG)
 
-    def complie_type(self):
-        '''
-        type: 'int' | 'char' | 'boolean' | className
-        '''
-        if self.jt.token_type == 'KEYWORD':
-            self.output_terminal_and_advance('keyword')
-        elif self.jt.token_type == 'IDENTIFIER':
-            self.output_terminal_and_advance('identifier')
-
-    def complie_subroutine_dec(self):
+    def compile_subroutine(self):
         '''
         subroutineDec: ('constructor' | 'function' | 'method') ('void' | type) subroutineName '(' parameterList ')' subroutineBody
         '''
-        self.output_line_xml('subroutineDec','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('subroutineDec',START_TAG)
 
         self.output_terminal_and_advance('keyword')
         if self.jt.token_type == 'KEYWORD' and self.jt.current_token == 'void':
             self.output_terminal_and_advance('keyword')
         else:
-            self.complie_type()
+            self.output_terminal_and_advance(TOKEN_TAG_DICT[self.jt.token_type])
         self.output_terminal_and_advance('identifier')
         self.output_terminal_and_advance('symbol')
-        self.complie_parameter_list()
+        self.compile_parameter_list()
         self.output_terminal_and_advance('symbol')
-        self.complie_subroutine_dec_body()
 
-        self.indent_lv -= 1
-        self.output_line_xml('subroutineDec','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        # subroutineBody
+        self.output_nonterminal('subroutineBody',START_TAG)
 
-    def complie_parameter_list(self):
+        self.output_terminal_and_advance('symbol')
+        while(self.jt.token_type == 'KEYWORD' and self.jt.current_token == 'var'):
+            self.compile_var_dec()
+        self.compile_statements()
+        self.output_terminal_and_advance('symbol')
+
+        self.output_nonterminal('subroutineBody',END_TAG)
+
+        self.output_nonterminal('subroutineDec',END_TAG)
+
+    def compile_parameter_list(self):
         '''
         parameterList: ((type varName) (',' type varName)*)?
         '''
-        self.output_line_xml('parameterList','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('parameterList',START_TAG)
 
         while self.jt.token_type in ('KEYWORD','IDENTIFIER'):
-            self.complie_type()
+            self.output_terminal_and_advance(TOKEN_TAG_DICT[self.jt.token_type])
             self.output_terminal_and_advance('identifier')
             while self.jt.token_type == 'SYMBOL' and self.jt.current_token in (','):
                 self.output_terminal_and_advance('symbol')
                 self.output_terminal_and_advance('keyword')
                 self.output_terminal_and_advance('identifier')
 
-        self.indent_lv -= 1
-        self.output_line_xml('parameterList','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
-        
-    def complie_subroutine_dec_body(self):
-        '''
-        subroutineBody: '{' varDec* statements '}'
-        '''
-        self.output_line_xml('subroutineBody','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('parameterList',END_TAG)
 
-        self.output_terminal_and_advance('symbol')
-        while(self.jt.token_type == 'KEYWORD' and self.jt.current_token == 'var'):
-            self.complie_var_dec()
-        self.complie_statements()
-        self.output_terminal_and_advance('symbol')
-
-        self.indent_lv -= 1
-        self.output_line_xml('subroutineBody','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
-
-    def complie_var_dec(self):
+    def compile_var_dec(self):
         '''
         varDec: 'var' type varName (',' varName)* ';'
         '''
-        self.output_line_xml('varDec','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('varDec',START_TAG)
 
         self.output_terminal_and_advance('keyword')
-        self.complie_type()
+        self.output_terminal_and_advance(TOKEN_TAG_DICT[self.jt.token_type])
         self.output_terminal_and_advance('identifier')
         while self.jt.token_type == 'SYMBOL' and self.jt.current_token in (','):
             self.output_terminal_and_advance('symbol')
             self.output_terminal_and_advance('identifier')
         self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('varDec','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('varDec',END_TAG)
 
-    ############################################################################
+    #######################
     # 文
-    ############################################################################
-    def complie_statements(self):
+    #######################
+    def compile_statements(self):
         '''
         statements: statement*
         '''
-        self.output_line_xml('statements','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('statements',START_TAG)
 
         while(self.jt.token_type == 'KEYWORD' and self.jt.current_token in ('do','let','while','return','if')):
 
             if(self.jt.current_token == 'let'):
-                self.complie_let()
+                self.compile_let()
 
             elif(self.jt.current_token == 'if'):
-                self.complie_if()
+                self.compile_if()
 
             elif(self.jt.current_token == 'while'):
-                self.complie_while()
+                self.compile_while()
 
             elif(self.jt.current_token == 'do'):
-                self.complie_do()
+                self.compile_do()
 
             elif(self.jt.current_token == 'return'):
-                self.complie_return()
+                self.compile_return()
 
-        self.indent_lv -= 1
-        self.output_line_xml('statements','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('statements',END_TAG)
 
-    def complie_let(self):
+    def compile_let(self):
         '''
         letStatement: 'let' varName ('[' expression ']')? '=' expression ';'
         '''
-        self.output_line_xml('letStatement','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('letStatement',START_TAG)
         
         self.output_terminal_and_advance('keyword')
         self.output_terminal_and_advance('identifier')
         # ('[' expression ']')?
         if(self.jt.token_type == 'SYMBOL' and self.jt.current_token == '['):
             self.output_terminal_and_advance('symbol')
-            self.complie_expression()
+            self.compile_expression()
             self.output_terminal_and_advance('symbol')
         self.output_terminal_and_advance('symbol')
-        self.complie_expression()
+        self.compile_expression()
         self.output_terminal_and_advance('symbol')
         
-        self.indent_lv -= 1
-        self.output_line_xml('letStatement','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('letStatement',END_TAG)
 
-    def complie_if(self):
+    def compile_if(self):
         '''
         ifStatement: 'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?
         '''
-        self.output_line_xml('ifStatement','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('ifStatement',START_TAG)
         
         self.output_terminal_and_advance('keyword')
         self.output_terminal_and_advance('symbol')
-        self.complie_expression()
+        self.compile_expression()
         self.output_terminal_and_advance('symbol')
         self.output_terminal_and_advance('symbol')
-        self.complie_statements()
+        self.compile_statements()
         self.output_terminal_and_advance('symbol')
         if(self.jt.token_type == 'KEYWORD' and self.jt.current_token == 'else'):
             self.output_terminal_and_advance('keyword')
             self.output_terminal_and_advance('symbol')
-            self.complie_statements()
+            self.compile_statements()
             self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('ifStatement','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('ifStatement',END_TAG)
 
-    def complie_while(self):
+    def compile_while(self):
         '''
         whileStatement: 'while' '(' expression ')' '{' statements '}'
         '''
-        self.output_line_xml('whileStatement','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('whileStatement',START_TAG)
         
         self.output_terminal_and_advance('keyword')
         self.output_terminal_and_advance('symbol')
-        self.complie_expression()
+        self.compile_expression()
         self.output_terminal_and_advance('symbol')
         self.output_terminal_and_advance('symbol')
-        self.complie_statements()
+        self.compile_statements()
         self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('whileStatement','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('whileStatement',END_TAG)
 
-    def complie_do(self):
+    def compile_do(self):
         '''
         doStatement: 'do' subroutineCall ';'
         '''
-        self.output_line_xml('doStatement','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('doStatement',START_TAG)
         
         self.output_terminal_and_advance('keyword')
         self.output_terminal_and_advance('identifier')
         if self.jt.current_token == '(':
             self.output_terminal_and_advance('symbol')
-            self.complie_expression_list()
+            self.compile_expression_list()
             self.output_terminal_and_advance('symbol')
         else:
             self.output_terminal_and_advance('symbol')
             self.output_terminal_and_advance('identifier')
             self.output_terminal_and_advance('symbol')
-            self.complie_expression_list()
+            self.compile_expression_list()
             self.output_terminal_and_advance('symbol')
         self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('doStatement','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('doStatement',END_TAG)
 
-    def complie_return(self):
+    def compile_return(self):
         ''''
         returnStatement: 'return' expression? ';'
         '''
-        self.output_line_xml('returnStatement','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('returnStatement',START_TAG)
         
         self.output_terminal_and_advance('keyword')
         if(self.jt.token_type != 'SYMBOL' and self.jt.current_token != ';'):    # ";" 以外の場合は式
-            self.complie_expression()
+            self.compile_expression()
         self.output_terminal_and_advance('symbol')
 
-        self.indent_lv -= 1
-        self.output_line_xml('returnStatement','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('returnStatement',END_TAG)
 
-    ############################################################################
+    #######################
     # 式
-    ############################################################################
-    def complie_expression(self):
+    #######################
+    def compile_expression(self):
         '''
         expression: term (op term)*
         '''
-        self.output_line_xml('expression','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('expression',START_TAG)
 
-        self.complie_term()
+        self.compile_term()
         while self.jt.token_type == 'SYMBOL' and self.jt.current_token in ('+','-','*','/','&','|','<','>','='):
             self.output_terminal_and_advance('symbol')
-            self.complie_term()
+            self.compile_term()
 
-        self.indent_lv -= 1
-        self.output_line_xml('expression','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('expression',END_TAG)
 
-    def complie_expression_list(self):
+    def compile_expression_list(self):
         '''
         expressionList: (expression (',' expression)* )?
         '''
-        self.output_line_xml('expressionList','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+        self.output_nonterminal('expressionList',START_TAG)
         
         if self.jt.current_token != ')':
-            self.complie_expression()
+            self.compile_expression()
             while self.jt.token_type == 'SYMBOL' and self.jt.current_token in (','):
                 self.output_terminal_and_advance('symbol')
-                self.complie_expression()
+                self.compile_expression()
 
-        self.indent_lv -= 1
-        self.output_line_xml('expressionList','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('expressionList',END_TAG)
 
-    def complie_term(self):
-        self.output_line_xml('term','DUMMY',self.indent_lv,NON_TERMINAL,START_TAG)
-        self.indent_lv += 1
+    def compile_term(self):
+        '''
+        term: integerConstant | stringConstant | keywordConstant |
+              varName | varName '[' expression ']' | subroutineCall | '(' expression ')' | unaryOp term
+        '''
+        self.output_nonterminal('term',START_TAG)
 
         if self.jt.token_type == 'INT_CONST':
             self.output_terminal_and_advance('integerConstant')
@@ -411,61 +384,64 @@ class CompilationEngine(object):
             self.output_terminal_and_advance('keyword')
         elif self.jt.token_type == 'SYMBOL' and self.jt.current_token in ('('):
             self.output_terminal_and_advance('symbol')
-            self.complie_expression()
+            self.compile_expression()
             self.output_terminal_and_advance('symbol')
         elif self.jt.token_type == 'SYMBOL' and self.jt.current_token in ('-','~'):
             self.output_terminal_and_advance('symbol')
-            self.complie_term()
+            self.compile_term()
         elif self.jt.token_type == 'IDENTIFIER':
             self.output_terminal_and_advance('identifier')
             if self.jt.token_type == 'SYMBOL' and self.jt.current_token == ('['):
                 self.output_terminal_and_advance('symbol')
-                self.complie_expression()
+                self.compile_expression()
                 self.output_terminal_and_advance('symbol')
             elif self.jt.token_type == 'SYMBOL' and self.jt.current_token in ('(','.'):
                 if self.jt.current_token == '.':
                     self.output_terminal_and_advance('symbol')
                     self.output_terminal_and_advance('identifier')
                 self.output_terminal_and_advance('symbol')
-                self.complie_expression_list()
+                self.compile_expression_list()
                 self.output_terminal_and_advance('symbol')
         else:
             self.output_terminal_and_advance('identifier')
 
-        self.indent_lv -= 1
-        self.output_line_xml('term','DUMMY',self.indent_lv,NON_TERMINAL,END_TAG)
+        self.output_nonterminal('term',END_TAG)
 
+    #######################
+    # utility
+    #######################
     def output_terminal_and_advance(self,tag):
         self.output_terminal(tag)
         self.jt.advance
 
-    def output_terminal(self,tag):
-        self.output_line_xml(tag,self.jt.current_token,self.indent_lv,TERMINAL)
+    def output_nonterminal(self,tag,is_start_tag):
+        '''
+            tag          : タグ名\n
+            is_start_tag : True = 開始タグ , False = 終了タグ\n
+                           Trueの場合は、indent_lvをincrement、Falseの場合は decrement
+        '''
 
-    def output_line_xml(self,tag,element,indent_lv,term_flg,is_start_tag=True):
-        '''
-            tag        : タグ名\n
-            element    : タグ要素\n
-            indent_lv  : インデントレベル\n
-            term_flg   : True = 終端記号 , Flase = 非終端記号\n
-            is_end_tag : 非終端記号の場合のみ有効、True = 開始タグ , False = 終了タグ\n
-                         Trueの場合は、indent_lvをincrement、Falseの場合は decrement
-        '''
-        
-        indent_blank = '  ' * indent_lv
-        element=html.escape(element, quote=False)
-        if term_flg == True:
-            # ターミナル要素の場合
-            #print(f"{indent_blank}<{tag}> {element} </{tag}>")
-            print(f"{indent_blank}<{tag}> {element} </{tag}>",file=self.output_file)
+        # 終了タグの場合はインデントレベルを下げる
+        if not is_start_tag:
+            self.indent_lv -= 1
+
+        indent_blank = '  ' * self.indent_lv
+        # 非ターミナル要素の場合
+        if is_start_tag :
+            #print(f"{indent_blank}<{tag}>")
+            print(f"{indent_blank}<{tag}>",file=self.output_file)
         else :
-            # 非ターミナル要素の場合
-            if is_start_tag :
-                #print(f"{indent_blank}<{tag}>")
-                print(f"{indent_blank}<{tag}>",file=self.output_file)
-            else :
-                #print(f"{indent_blank}</{tag}>")
-                print(f"{indent_blank}</{tag}>",file=self.output_file)
+            #print(f"{indent_blank}</{tag}>")
+            print(f"{indent_blank}</{tag}>",file=self.output_file)
+
+        # 開始タグの場合はインデントレベルを上げる
+        if is_start_tag:
+            self.indent_lv += 1
+
+    def output_terminal(self,tag):
+        indent_blank = '  ' * self.indent_lv
+        element=html.escape(self.jt.current_token, quote=False)
+        print(f"{indent_blank}<{tag}> {element} </{tag}>",file=self.output_file)
 
     def output_close(self):
         self.output_file.close()
@@ -541,16 +517,21 @@ class JackTokenizer(object):
             self.token_type = 'INT_CONST'
             current_int = next_token[0:]
             full_int = ''
-
+            #self.current_token = next_token[0:]
+            #self.output_line    # トークナイザ結果出力 (-> xxxT.xml)
+            #return
             for i, num in enumerate(current_int):
-                if not num.isdigit():
+                #if not num.isdigit():
+                if num in self.symbols:
                     full_int += current_int[:i]
                     if(current_int[i:]):
                         self.jack_words.appendleft(current_int[i:])
                     self.current_token = full_int.strip()
-                    
                     self.output_line    # トークナイザ結果出力 (-> xxxT.xml)
                     return
+            self.current_token = current_int.strip()
+            self.output_line    # トークナイザ結果出力 (-> xxxT.xml)
+            return
 
         # Case:stringContant
         if next_token[0] == '"':                                                # トークンの先頭が'"' の場合、"STRING_CONST" の開始と判断する
@@ -619,11 +600,19 @@ class JackTokenizer(object):
     def output_line(self):
         self.current_token_type_tag = self.token_tag_dict[self.token_type]
         #escaped_s = html.escape(s, quote=False)
-        print(f"<{self.current_token_type_tag}> {html.escape(self.current_token, quote=False)} </{self.current_token_type_tag}>",file=self.output_file)
+        try:
+            print(f"<{self.current_token_type_tag}> {html.escape(self.current_token, quote=False)} </{self.current_token_type_tag}>",file=self.output_file)
+        except ValueError:
+            print("Cannot write to a closed file.")
+        #print(f"<{self.current_token_type_tag}> {html.escape(self.current_token, quote=False)} </{self.current_token_type_tag}>",file=self.output_file)
 
     @property
     def output_close(self):
-        print("</tokens>",file=self.output_file)
+        try:
+            print("</tokens>",file=self.output_file)
+        except ValueError:
+            print("Cannot write to a closed file.")
+        #print("</tokens>",file=self.output_file)
         self.output_file.close()
 
     ## API END ############
