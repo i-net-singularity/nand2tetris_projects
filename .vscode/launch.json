@@ -33,9 +33,9 @@
             //------------------------------------------------------------------
             //Capter 10 JackAnalyzer
             //------------------------------------------------------------------
-            "cwd":"${workspaceFolder}\\10",
+            //"cwd":"${workspaceFolder}\\10",
             //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
-            "program": "${workspaceFolder}\\10\\n2t_jack_analyzer.py",
+            //"program": "${workspaceFolder}\\10\\n2t_jack_analyzer.py",
             //"args": ["./ExpressionLessSquare/Main.jack"],
             //"args": ["./ExpressionLessSquare/SquareGame.jack"],
             //"args": ["./ExpressionLessSquare/"],
@@ -43,22 +43,21 @@
             //args": ["./Square/Square.jack"],
             //"args": ["./Square/"],
             //"args": ["./Square/test.jack"],
-            "args": ["./ArrayTest/"],
+            //"args": ["./ArrayTest/"],
             //"args": ["./Test/"],
 
             //------------------------------------------------------------------
             //Capter 11 JackAnalyzer
             //------------------------------------------------------------------
-            //"cwd":"${workspaceFolder}\\11",
-            //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
-            //"program": "${workspaceFolder}\\11\\n2t_jack_analyzer_step1.py",
-            //"args": ["./Seven/"],
-            //"args": ["./ExpressionLessSquare/Main.jack"],
-            //"args": ["./ExpressionLessSquare/SquareGame.jack"],
-            //"args": ["./ExpressionLessSquare/"],
-            //args": ["./Square/Square.jack"],
+            "cwd":"${workspaceFolder}\\11",
+            //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\11\\JackAnalyzer\\JackAnalyzer.py",
+            "program": "${workspaceFolder}\\11\\n2t_jack_analyzer_step2.py",
+            "args": ["./Seven/"],
+            //"args": ["./ConvertToBin/"],
             //"args": ["./Square/"],
-            //"args": ["./ArrayTest/"],
+            //"args": ["./Average/"],
+            //"args": ["./Pong/"],
+            //"args": ["./ComplexArrays/"],
 
             "console": "integratedTerminal",
             "justMyCode": true
