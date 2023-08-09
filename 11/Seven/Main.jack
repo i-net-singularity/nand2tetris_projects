@@ -8,10 +8,23 @@
  * at the top-left of the screen.  
  */
 class Main {
-
+   //static int sint_a,int_b;
+   //static char char_a,char_b;
+   //field int int_c,int_d;
    function void main() {
+      //var int int_a,int_b,int_c,int_d;
       do Output.printInt(1 + (2 * 3));
       return;
    }
-
+   //function void sub1(int arg_a,char arg_b) {
+   //   var int int_c,int_d;
+   //   do Output.printInt(1 + (2 * 3));
+   //   return;
+   //}
+   //function void sub2(int arg_c,char arg_d,char arg_e) {
+   //   var int int_a2,int_b2;
+   //   var char char_a2,char_b2;
+   //   do Output.printInt(1 + (2 * 3));
+   //   return;
+   //}
 }
