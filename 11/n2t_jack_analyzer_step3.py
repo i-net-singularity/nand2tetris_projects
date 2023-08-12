@@ -489,10 +489,10 @@ class CompilationEngine(object):
         subroutineCall: subroutineName '(' expressionList ')' |
                         (className | varName) '.' subroutineName '(' expressionList ')'
         '''
-        subroutine_name=self.jt.current_token
-        (type, kind, index) = self.symbol_table.get_symbol_info(subroutine_name)
-        #print(f"■symbol_name={subroutine_name} type={type} kind={kind} index={index}")
-        is_method_call = type is None
+        name=self.jt.current_token
+        (type, kind, index) = self.symbol_table.get_symbol_info(name)
+        print(f"■symbol_name={name} type={type} kind={kind} index={index}")
+        is_class_call = type is None
         
         a=self.jt.current_token
         self.output_terminal_and_advance('identifier')
@@ -506,7 +506,7 @@ class CompilationEngine(object):
 
             self.vm_writer.push_this_ptr()
             arg_count += 1
-            self.vm_writer.write_call(f"{self.class_name}.{subroutine_name}",arg_count)
+            self.vm_writer.write_call(f"{self.class_name}.{name}",arg_count)
             self.vm_writer.pop_temp(0)
 
         else:
@@ -514,10 +514,12 @@ class CompilationEngine(object):
             # 他クラスのメソッド呼び出しの場合
             # #############################
             self.output_terminal_and_advance('symbol')
-            if type is not None:
-                subroutine_name=f"{type}.{self.jt.current_token}"
+            if is_class_call:
+                print(f"class={name}")
+                name=f"{name}.{self.jt.current_token}"
             else:
-                subroutine_name=f"{a}.{self.jt.current_token}"
+                # type には className が入っている
+                name=f"{type}.{self.jt.current_token}"
 
             self.output_terminal_and_advance('identifier')
             self.output_terminal_and_advance('symbol')
@@ -525,11 +527,14 @@ class CompilationEngine(object):
             self.output_terminal_and_advance('symbol')
 
             # 引数が 0 の場合はダミーの引数を渡す
-            if arg_count == 0:
-                arg_count=1
-                self.vm_writer.write_push(segments[kind],index)
+            if is_class_call:
+                arg_count =0
+            else:
+                if arg_count == 0:
+                    arg_count=1
+                    self.vm_writer.write_push(segments[kind],index)
 
-            self.vm_writer.write_call(subroutine_name,arg_count)
+            self.vm_writer.write_call(name,arg_count)
             self.vm_writer.pop_temp(0)
             
 
