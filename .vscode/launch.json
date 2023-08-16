@@ -50,14 +50,20 @@
             //Capter 11 JackAnalyzer
             //------------------------------------------------------------------
             "cwd":"${workspaceFolder}\\11",
+            //"program": "${workspaceFolder}\\06\\n2t_hack_assenbler_byPy\\n2t_hack_assembler.py",
+            //"args": ["./Seven/Seven.asm","./Seven/Seven.hack"],
+            //"program": "${workspaceFolder}\\08\\n2t_hack_vm_translator.py",
+            //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\10\\JackAnalyzer\\JackAnalyzer.py",
             //"program": "C:\\01_Google_D\\GitHub\\SC_nand2tetris\\他の人達の成果物\\havivha_Nand2Tetris-master\\11\\JackAnalyzer\\JackAnalyzer.py",
-            "program": "${workspaceFolder}\\11\\n2t_jack_analyzer_step2.py",
-            "args": ["./Seven/"],
+            "program": "${workspaceFolder}\\11\\n2t_jack_analyzer_step3.py",
+            //"args": ["./Seven/"],
             //"args": ["./ConvertToBin/"],
             //"args": ["./Square/"],
             //"args": ["./Average/"],
             //"args": ["./Pong/"],
             //"args": ["./ComplexArrays/"],
+            "args": ["./Test/"],
+            //"args": ["./Tetris/"],
 
             "console": "integratedTerminal",
             "justMyCode": true

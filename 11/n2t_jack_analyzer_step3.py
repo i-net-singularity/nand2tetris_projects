@@ -19,6 +19,9 @@ NON_TERMINAL=False
 START_TAG=True
 END_TAG=False
 
+PEEK_MODE = '1'
+ADVANCE_MODE = '2'
+
 # Token kinds
 TOKEN_TAG_DICT = {
     'KEYWORD'     : 'keyword',
@@ -163,19 +166,19 @@ class CompilationEngine(object):
     def compile_jack(self):
 
         # debug for Tokenizer
-        #while self.jt.has_more_tokens :
+        #while self.jt.has_more_tokens() :
         #    self.jt.advance
         #self.jt.output_close
         self.symbol_table
         # 1ファイルごとにJackコードをコンパイルする
-        self.jt.advance
+        self.jt.advance()
         self.compile_class()
         self.jt.output_close
         self.output_close()
         self.vm_writer.output_close()
 
         print("------------------------------------")
-        print(self.symbol_table)
+        #print(self.symbol_table)
         print("------------------------------------")
 
     ## API END ############
@@ -239,6 +242,8 @@ class CompilationEngine(object):
         self.output_nonterminal('subroutineDec',START_TAG)
         
         subroutine_type=self.jt.current_token
+        if subroutine_type == "method":
+            self.symbol_table.define("this", self.class_name, SK_ARG)
         self.output_terminal_and_advance('keyword')
         if self.jt.token_type == 'KEYWORD' and self.jt.current_token == 'void':
             self.output_terminal_and_advance('keyword')
@@ -270,6 +275,10 @@ class CompilationEngine(object):
 
         self.output_nonterminal('subroutineBody',END_TAG)
         self.output_nonterminal('subroutineDec',END_TAG)
+
+        print("# S--------------------------------")
+        print(self.symbol_table)
+        print("# E--------------------------------")
 
     def compile_parameter_list(self):
         '''
@@ -431,7 +440,6 @@ class CompilationEngine(object):
         self.if_count += 1
         return str(self.if_count)
 
-
     def compile_while(self):
         '''
         whileStatement: 'while' '(' expression ')' '{' statements '}'
@@ -489,54 +497,66 @@ class CompilationEngine(object):
         subroutineCall: subroutineName '(' expressionList ')' |
                         (className | varName) '.' subroutineName '(' expressionList ')'
         '''
+        # 確認用
+        #print("■ compile_subroutine_call ■")
+        #print("▼ class_Name=",self.class_name)
         name=self.jt.current_token
+        #print("▼ name=",name)
         (type, kind, index) = self.symbol_table.get_symbol_info(name)
-        print(f"■symbol_name={name} type={type} kind={kind} index={index}")
+        #print(f"▼ symbol_name={name} type={type} kind={kind} index={index}")
         is_class_call = type is None
-        
-        a=self.jt.current_token
+
         self.output_terminal_and_advance('identifier')
         if self.jt.current_token == '(':
             # VMコード出力 #################
             # 自クラスのメソッド呼び出しの場合
             # #############################
+            self.vm_writer.push_this_ptr()
             self.output_terminal_and_advance('symbol')
             arg_count=self.compile_expression_list()
             self.output_terminal_and_advance('symbol')
-
-            self.vm_writer.push_this_ptr()
+            
             arg_count += 1
-            self.vm_writer.write_call(f"{self.class_name}.{name}",arg_count)
-            self.vm_writer.pop_temp(0)
+            class_name=self.class_name
+            method_name=name
+            name=f"{class_name}.{method_name}"
 
         else:
             # VMコード出力 #################
-            # 他クラスのメソッド呼び出しの場合
+            # 上記以外（他クラスのメソッド or 自他クラスファンクション）呼び出しの場合
             # #############################
             self.output_terminal_and_advance('symbol')
+            method_or_func_name=self.jt.current_token
+            print(f"▼ method_or_func_name={method_or_func_name}")
+            
+            write_push_flg=False
             if is_class_call:
-                print(f"class={name}")
-                name=f"{name}.{self.jt.current_token}"
+                pass
             else:
-                # type には className が入っている
-                name=f"{type}.{self.jt.current_token}"
+                self.vm_writer.write_push(segments[kind],index)
+                write_push_flg=True
 
             self.output_terminal_and_advance('identifier')
             self.output_terminal_and_advance('symbol')
             arg_count=self.compile_expression_list()
             self.output_terminal_and_advance('symbol')
 
-            # 引数が 0 の場合はダミーの引数を渡す
             if is_class_call:
-                arg_count =0
+                # function call
+                class_name=name
+                function_name=method_or_func_name
+                name=f"{class_name}.{function_name}"
             else:
-                if arg_count == 0:
-                    arg_count=1
+                # method call
+                class_name=type
+                method_name=method_or_func_name
+                name=f"{class_name}.{method_name}"
+                arg_count += 1
+                if not write_push_flg:
                     self.vm_writer.write_push(segments[kind],index)
 
-            self.vm_writer.write_call(name,arg_count)
-            self.vm_writer.pop_temp(0)
-            
+        self.vm_writer.write_call(name,arg_count)
+        self.vm_writer.pop_temp(0)
 
         self.output_terminal_and_advance('symbol')
         
@@ -660,19 +680,18 @@ class CompilationEngine(object):
             self.vm_writer.write_arithmetic(operator) # ### VMコード出力
         # varname | varName '[' expression ']' | subroutineCall
         elif self.jt.token_type == 'IDENTIFIER':
-            #self.vm_writer.write_pop('temp',0)
-            # varName , subroutine_name
+            # 確認用
+            
             name=self.jt.current_token
             (type, kind, index) = self.symbol_table.get_symbol_info(name)
-            #print(f"!! Term:varName = {name} type={type} kind={kind} index={index}")
+            is_method_call = type is not None
+            is_class_call = type is None
+
             self.output_terminal_and_advance('identifier')
+            
             # varName '[' expression ']'
             if self.jt.token_type == 'SYMBOL' and self.jt.current_token == ('['):
-                #print(f"!!!Term:varName = {name} type={type} kind={kind} index={index}")
                 self.output_terminal_and_advance('symbol')
-                #name=self.jt.current_token
-                #(type, kind, index) = self.symbol_table.get_symbol_info(name)
-                #print(f"Term:varName = {name} type={type} kind={kind} index={index}")
                 self.compile_expression()
                 self.output_terminal_and_advance('symbol')
 
@@ -687,13 +706,21 @@ class CompilationEngine(object):
             # subroutineCall
             elif self.jt.token_type == 'SYMBOL' and self.jt.current_token in ('(','.'):
                 if self.jt.current_token == '.':
-                    name+=self.jt.current_token
+                    print(f"▽ symbol_name={name} type={type} kind={kind} index={index}")
+                    #is_method_call = type is not None
+                    if is_method_call:
+                        name=f"{type}."
+                    else:
+                        name+=self.jt.current_token
                     self.output_terminal_and_advance('symbol')
                     name+=self.jt.current_token
                     #print(f"Term:subroutine_name = {name}")
                     self.output_terminal_and_advance('identifier')
                 self.output_terminal_and_advance('symbol')
                 arg_count=self.compile_expression_list()
+                if is_method_call:
+                    arg_count+=1
+                    self.vm_writer.write_push(segments[kind],index) # ### VMコード出力
                 self.output_terminal_and_advance('symbol')
                 # VMコード出力
                 self.vm_writer.write_call(name,arg_count) # ### VMコード出力
@@ -717,7 +744,7 @@ class CompilationEngine(object):
         #if tag == 'identifier':
             #print(f"<{tag}> {self.jt.current_token} </{tag}>")
             #self.symbol_table.define(self.jt.current_token, self.jt.token_type, 0)
-        self.jt.advance
+        self.jt.advance()
 
     def output_nonterminal(self,tag,is_start_tag):
         '''
@@ -799,30 +826,27 @@ class JackTokenizer(object):
     #######################
     ## API START ##########
 
-    @property
     def has_more_tokens(self):
         return len(self.jack_words) > 0
     
-    def peek(self,index):
-        return self.jack_words[index]
+    def peek(self):
+        self.next_token=self.jack_words[0]
+        self.lex(PEEK_MODE)
 
-    @property
     def advance(self):
         self.next_token=self.jack_words.popleft()
-        self.lex()
+        self.lex(ADVANCE_MODE)
     
-    def lex(self):
-    #def advance(self):
-        #next_token=self.jack_words.popleft()
+    def lex(self,mode):
         next_token=self.next_token
         # Case:symbol
         if next_token[0] in self.symbols:
             self.token_type = 'SYMBOL'
             self.current_token = next_token[0]
-            if next_token[1:] :
-                self.jack_words.appendleft(next_token[1:])
-            
-            self.output_line    # トークナイザ結果出力 (-> xxxT.xml)
+            if mode == ADVANCE_MODE:
+                if next_token[1:] :
+                    self.jack_words.appendleft(next_token[1:])
+                self.output_line    # トークナイザ結果出力 (-> xxxT.xml)
             return
 
         # Case:integerConstant
