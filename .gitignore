@@ -45,5 +45,7 @@ hs_err_pid*
 09/*/*/*.(asm|vm)
 10/*/*/*.(asm|vm)
 11/*/*/*.(asm|vm)
+11/jacktris-master/
 */VMtranslator_byPy_Sample/
 *.xlsx
+*.sample
